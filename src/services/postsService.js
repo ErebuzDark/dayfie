@@ -7,6 +7,8 @@ import {
   getDocs,
   getDoc,
   query,
+  startAfter,
+  limit as limitQ,
   orderBy,
   serverTimestamp,
   onSnapshot,
@@ -139,6 +141,21 @@ export async function toggleReaction(postId, uid, reactionType) {
   }
 
   await updateDoc(postRef, { reactions, reactedBy })
+}
+
+// Paginated fetch of posts for a user (non-realtime)
+export async function getUserPosts(uid, pageSize = 6, startAfterDoc = null) {
+  const postsCol = collection(db, POSTS_COLLECTION)
+  let q
+  if (startAfterDoc) {
+    q = query(postsCol, where('authorId', '==', uid), orderBy('createdAt', 'desc'), startAfter(startAfterDoc), limitQ(pageSize))
+  } else {
+    q = query(postsCol, where('authorId', '==', uid), orderBy('createdAt', 'desc'), limitQ(pageSize))
+  }
+  const snap = await getDocs(q)
+  const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  const last = snap.docs[snap.docs.length - 1] || null
+  return { posts, last }
 }
 
 // Comments

@@ -34,7 +34,7 @@ export default function Navbar({ onNewPost }) {
       key: 'profile',
       icon: <UserOutlined />,
       label: userProfile?.displayName || user?.displayName || 'My Profile',
-      disabled: true,
+      onClick: () => navigate(`/profile/${user.uid}`),
     },
     { type: 'divider' },
     {
@@ -144,40 +144,14 @@ export default function Navbar({ onNewPost }) {
                     display: 'flex',
                     alignItems: 'center',
                   }}
+                  onClick={() => navigate(`/profile/${user.uid}`)}
                 >
                   {photoURL ? (
-                    <img
-                      src={photoURL}
-                      alt={displayName}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '2px solid oklch(91% 0 0)',
-                      }}
-                    />
+                    <img src={photoURL} alt={displayName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid oklch(91% 0 0)' }} />
                   ) : (
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        background: 'oklch(96% 0.04 265)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontFamily: 'Poppins, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '0.8rem',
-                        color: 'oklch(55% 0.18 265)',
-                        border: '2px solid oklch(91% 0 0)',
-                      }}
-                    >
-                      {getInitials(displayName)}
-                    </div>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'oklch(96% 0.04 265)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: '0.8rem', color: 'oklch(55% 0.18 265)', border: '2px solid oklch(91% 0 0)' }}>{getInitials(displayName)}</div>
                   )}
-                </button>
+                  </button>
               </Dropdown>
             </>
           ) : (

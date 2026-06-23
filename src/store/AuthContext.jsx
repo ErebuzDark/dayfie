@@ -81,6 +81,7 @@ export function AuthProvider({ children }) {
       value={{
         user,
         userProfile,
+        setUserProfile,
         loading,
         signInWithGoogle,
         signInWithEmail,

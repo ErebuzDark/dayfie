@@ -6,6 +6,7 @@ import { useOutletContext } from 'react-router-dom'
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const HomePageWrapper = lazy(() => import('@/pages/HomePageWrapper'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 
 function PageLoader() {
   return (
@@ -25,6 +26,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <HomePageWrapper />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'profile/:uid',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProfilePage />
           </Suspense>
         ),
       },

@@ -15,8 +15,8 @@ export default function PostComposer({ open, onClose, editPost }) {
   const [title, setTitle] = useState('')
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState('')
-  const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
+  // images: array of { file?, preview?, url?, path? }
+  const [images, setImages] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [submitting, setSubmitting] = useState(false)
 
@@ -28,7 +28,11 @@ export default function PostComposer({ open, onClose, editPost }) {
       setTitle(editPost.title || '')
       setCaption(editPost.caption || '')
       setTags(editPost.tags?.join(', ') || '')
-      setImagePreview(editPost.imageUrl || null)
+      // initialize images from editPost: support legacy single image or new imageUrls
+      const existingUrls = Array.isArray(editPost.imageUrls) ? editPost.imageUrls : (editPost.imageUrl ? [editPost.imageUrl] : [])
+      const existingPaths = Array.isArray(editPost.imagePaths) ? editPost.imagePaths : (editPost.imagePath ? [editPost.imagePath] : [])
+      const initial = existingUrls.map((u, i) => ({ url: u, path: existingPaths[i] || null }))
+      setImages(initial)
     } else {
       resetForm()
     }
@@ -38,8 +42,7 @@ export default function PostComposer({ open, onClose, editPost }) {
     setTitle('')
     setCaption('')
     setTags('')
-    setImageFile(null)
-    setImagePreview(null)
+    setImages([])
     setUploadProgress(0)
   }
 
@@ -51,18 +54,24 @@ export default function PostComposer({ open, onClose, editPost }) {
   }
 
   function handleImageSelect(file) {
-    const isImage = file.type.startsWith('image/')
+    const isImage = file.type && file.type.startsWith('image/')
     const isLt8M = file.size / 1024 / 1024 < 8
     if (!isImage) { message.error('Please upload an image file'); return Upload.LIST_IGNORE }
     if (!isLt8M) { message.error('Image must be smaller than 8MB'); return Upload.LIST_IGNORE }
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+    if (images.length >= 10) { message.error('Maximum 10 images per post'); return Upload.LIST_IGNORE }
+    const preview = URL.createObjectURL(file)
+    setImages((prev) => [...prev, { file, preview }])
     return false // prevent auto-upload
   }
 
-  function removeImage() {
-    setImageFile(null)
-    setImagePreview(null)
+  function removeImage(index) {
+    setImages((prev) => {
+      const copy = prev.slice()
+      const removed = copy.splice(index, 1)
+      // revoke preview URL if created
+      if (removed[0]?.preview) URL.revokeObjectURL(removed[0].preview)
+      return copy
+    })
   }
 
   async function handleSubmit() {
@@ -73,25 +82,66 @@ export default function PostComposer({ open, onClose, editPost }) {
 
     setSubmitting(true)
     try {
-      let imageUrl = editPost?.imageUrl || null
-      let imagePath = editPost?.imagePath || null
+      // prepare existing images and files
+      const original = (editPost ? (Array.isArray(editPost.imagePaths) ? editPost.imagePaths : (editPost.imagePath ? [editPost.imagePath] : [])) : [])
+      const originalUrls = (editPost ? (Array.isArray(editPost.imageUrls) ? editPost.imageUrls : (editPost.imageUrl ? [editPost.imageUrl] : [])) : [])
 
-      // Upload new image if selected
-      if (imageFile) {
-        // Delete old image if editing
-        if (editPost?.imagePath) {
-          await deleteImage(editPost.imagePath)
+      // images state items: some have { url, path } (existing) or { file, preview }
+      const newFiles = images.filter((i) => i.file)
+      const keptExisting = images.filter((i) => i.url).map((i) => i.url)
+
+      const uploadedResults = []
+      // upload new files sequentially and aggregate progress
+      if (newFiles.length > 0) {
+        const total = newFiles.length
+        let uploadedSoFar = 0
+        for (let idx = 0; idx < newFiles.length; idx++) {
+          const f = newFiles[idx].file
+          const res = await uploadImage(f, user.uid, (p) => {
+            // aggregate: uploadedSoFar completes previous files, plus p% of current
+            const agg = Math.round(((uploadedSoFar + (p / 100)) / total) * 100)
+            setUploadProgress(agg)
+          })
+          uploadedResults.push(res)
+          uploadedSoFar += 1
         }
-        const result = await uploadImage(imageFile, user.uid, (p) => setUploadProgress(p))
-        imageUrl = result.url
-        imagePath = result.path
       }
 
-      // If editing and image was removed
-      if (isEditing && !imagePreview && editPost?.imagePath && !imageFile) {
-        await deleteImage(editPost.imagePath)
-        imageUrl = null
-        imagePath = null
+      // build final arrays: start with kept existing (url + maybe path), then append uploaded results
+      let finalImageUrls = []
+      let finalImagePaths = []
+      // preserved existing (in order)
+      images.forEach((it) => {
+        if (it.url) {
+          finalImageUrls.push(it.url)
+          if (it.path) finalImagePaths.push(it.path)
+        }
+      })
+      // append uploaded in insertion order
+      uploadedResults.forEach((r) => {
+        finalImageUrls.push(r.url)
+        finalImagePaths.push(r.path)
+      })
+
+      // Remove duplicate URLs while preserving order, and keep corresponding paths aligned when possible
+      const seen = new Set()
+      const dedupedUrls = []
+      const dedupedPaths = []
+      for (let i = 0; i < finalImageUrls.length; i++) {
+        const u = finalImageUrls[i]
+        if (!u || seen.has(u)) continue
+        seen.add(u)
+        dedupedUrls.push(u)
+        dedupedPaths.push(finalImagePaths[i] || null)
+      }
+      finalImageUrls = dedupedUrls
+      finalImagePaths = dedupedPaths
+
+      // Determine removed original paths to delete
+      const removedPaths = (originalUrls || []).map((u, i) => original[i]).filter(Boolean).filter((path) => !finalImagePaths.includes(path))
+      // delete removed images (best-effort)
+      for (const p of removedPaths) {
+        try { await deleteImage(p) } catch (e) { console.warn('failed deleting image', p, e) }
       }
 
       const parsedTags = tags
@@ -107,8 +157,8 @@ export default function PostComposer({ open, onClose, editPost }) {
         title: title.trim(),
         caption: caption.trim(),
         tags: parsedTags,
-        imageUrl,
-        imagePath,
+        imageUrls: finalImageUrls.length ? finalImageUrls : null,
+        imagePaths: finalImagePaths.length ? finalImagePaths : null,
         authorId: user.uid,
         authorName,
         authorPhotoURL,
@@ -186,19 +236,31 @@ export default function PostComposer({ open, onClose, editPost }) {
         <div>
           <label className="block text-sm font-medium text-neutral-600 mb-1">Photo <span className="text-neutral-500">(optional)</span></label>
 
-          {imagePreview ? (
-            <div className="relative rounded-xl overflow-hidden border-[1.5px] border-neutral-200">
-              <img src={imagePreview} alt="Preview" className="w-full max-h-[260px] object-cover block" />
-              <button onClick={removeImage} className="absolute top-2 right-2 bg-black/60 rounded-full w-7 h-7 flex items-center justify-center text-white backdrop-blur-sm">
-                <CloseOutlined style={{ fontSize: 12 }} />
-              </button>
+          {images.length > 0 ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                {images.map((it, i) => (
+                  <div key={i} className="relative rounded-md overflow-hidden">
+                    <img loading="lazy" src={it.preview || it.url} alt={`preview-${i}`} className="w-full h-28 object-cover block" />
+                    <button onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/60 rounded-full w-7 h-7 flex items-center justify-center text-white"><CloseOutlined style={{ fontSize: 12 }} /></button>
+                  </div>
+                ))}
+              </div>
+              {images.length < 10 && (
+                <Upload.Dragger accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
+                  <div className="p-3 text-center">
+                    <PlusOutlined style={{ fontSize: 20, color: 'var(--color-neutral-600)', marginBottom: 6 }} />
+                    <p className="m-0 text-sm text-neutral-600">Add more images (max 10)</p>
+                  </div>
+                </Upload.Dragger>
+              )}
             </div>
           ) : (
             <Upload.Dragger accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
               <div className="p-4 text-center">
                 <CameraOutlined style={{ fontSize: 28, color: 'var(--color-neutral-600)', marginBottom: 8 }} />
                 <p className="m-0 text-sm text-neutral-600 font-medium">Click or drag a photo here</p>
-                <p className="mt-1 text-xs text-neutral-500">PNG, JPG, WEBP · Max 8MB</p>
+                <p className="mt-1 text-xs text-neutral-500">PNG, JPG, WEBP · Max 8MB (up to 10 images)</p>
               </div>
             </Upload.Dragger>
           )}
