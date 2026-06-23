@@ -188,15 +188,14 @@ export default function PostCard({ post, onEdit }) {
           )}
         </div>
       )}
-      {/* {images.length > 1 && (
-        <div className={`grid gap-1 border-b p-1 ${images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-          {images.slice(0, 6).map((src, i) => (
-            <div key={i} className={`overflow-hidden rounded-md ${images.length === 2 ? '' : (i === 0 ? 'col-span-2 row-span-2' : '')}`} onClick={() => { setCurrentImageIndex(i); setImageOpen(true) }}>
-              <img loading="lazy" src={src} alt={post.caption || `image-${i+1}`} className="w-full h-36 object-cover block hover:scale-105 transition-transform duration-200" />
-            </div>
-          ))}
+      {images.length === 1 && (
+        <div className="border-b p-1 flex justify-center">
+          <div className="w-full max-w-3xl overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(0); setImageOpen(true) }}>
+            <img loading="lazy" src={images[0]} alt={post.caption || `image-1`} className="w-full h-auto max-h-[60vh] object-contain block mx-auto" />
+          </div>
         </div>
-      )} */}
+      )}
+      {images.length === 0 && null}
 
       <div className="p-4 sm:p-5">
         {/* Author Row */}

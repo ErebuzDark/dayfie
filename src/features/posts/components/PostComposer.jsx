@@ -247,20 +247,20 @@ export default function PostComposer({ open, onClose, editPost }) {
                 ))}
               </div>
               {images.length < 10 && (
-                <Upload.Dragger accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
+                <Upload.Dragger multiple accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
                   <div className="p-3 text-center">
                     <PlusOutlined style={{ fontSize: 20, color: 'var(--color-neutral-600)', marginBottom: 6 }} />
-                    <p className="m-0 text-sm text-neutral-600">Add more images (max 10)</p>
+                    <p className="m-0 text-sm text-neutral-600">Add more images — you can select multiple (max 10)</p>
                   </div>
                 </Upload.Dragger>
               )}
             </div>
           ) : (
-            <Upload.Dragger accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
+            <Upload.Dragger multiple accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
               <div className="p-4 text-center">
                 <CameraOutlined style={{ fontSize: 28, color: 'var(--color-neutral-600)', marginBottom: 8 }} />
-                <p className="m-0 text-sm text-neutral-600 font-medium">Click or drag a photo here</p>
-                <p className="mt-1 text-xs text-neutral-500">PNG, JPG, WEBP · Max 8MB (up to 10 images)</p>
+                <p className="m-0 text-sm text-neutral-600 font-medium">Click or drag photos here (you can select multiple)</p>
+                <p className="mt-1 text-xs text-neutral-500">PNG, JPG, WEBP · Max 8MB per image · Up to 10 images</p>
               </div>
             </Upload.Dragger>
           )}
