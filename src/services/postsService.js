@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   onSnapshot,
   where,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -141,19 +142,25 @@ export async function toggleReaction(postId, uid, reactionType) {
 }
 
 // Comments
-export async function createComment(postId, { text, authorId, authorName, authorPhotoURL }) {
+export async function createComment(postId, { text, authorId, authorName, authorPhotoURL, parentId = null }) {
   const commentsRef = collection(doc(db, POSTS_COLLECTION, postId), 'comments')
-  const refDoc = await addDoc(commentsRef, {
-    text,
-    authorId,
-    authorName: authorName || 'Anonymous',
-    authorPhotoURL: authorPhotoURL || null,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    reactions: { like: 0, heart: 0, care: 0, laugh: 0, sad: 0, angry: 0 },
-    reactedBy: {},
-  })
-  return refDoc.id
+  try {
+    const refDoc = await addDoc(commentsRef, {
+      text,
+      authorId,
+      authorName: authorName || 'Anonymous',
+      authorPhotoURL: authorPhotoURL || null,
+      parentId: parentId || null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      reactions: { like: 0, heart: 0, care: 0, laugh: 0, sad: 0, angry: 0 },
+      reactedBy: {},
+    })
+    return refDoc.id
+  } catch (e) {
+    console.error('createComment error', e)
+    throw new Error(e.message || 'Failed to create comment')
+  }
 }
 
 export function subscribeToComments(postId, callback) {
@@ -166,7 +173,20 @@ export function subscribeToComments(postId, callback) {
 }
 
 export async function deleteComment(postId, commentId) {
-  await deleteDoc(doc(collection(doc(db, POSTS_COLLECTION, postId), 'comments'), commentId))
+  // Delete the comment and any direct replies (one-level deep) in a batch
+  const commentsCol = collection(doc(db, POSTS_COLLECTION, postId), 'comments')
+  const repliesQ = query(commentsCol, where('parentId', '==', commentId))
+  const snaps = await getDocs(repliesQ)
+  const batch = writeBatch(db)
+
+  snaps.forEach((s) => {
+    batch.delete(doc(commentsCol, s.id))
+  })
+
+  // delete the parent comment
+  batch.delete(doc(commentsCol, commentId))
+
+  await batch.commit()
 }
 
 export async function toggleCommentReaction(postId, commentId, uid, reactionType) {

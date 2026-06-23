@@ -28,11 +28,26 @@ service cloud.firestore {
         allow read: if true;
 
         // Create: only authenticated users, authorId must match signer, and text limited
+        // If creating a reply (parentId != null) ensure parent exists and is a top-level comment.
         allow create: if isSignedIn()
           && request.resource.data.authorId == request.auth.uid
           && (request.resource.data.text is string)
           && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 2000;
+          && request.resource.data.text.size() <= 2000
+          && (
+            // either top-level comment
+            request.resource.data.parentId == null
+            // or a reply whose parent exists and has no parent (one-level nesting)
+            || (
+              request.resource.data.parentId is string
+              && exists(/databases/$(database)/documents/posts/$(postId)/comments/$(request.resource.data.parentId))
+              // parent must be a top-level comment (parent has no parentId)
+              && (
+                get(/databases/$(database)/documents/posts/$(postId)/comments/$(request.resource.data.parentId)).data.parentId == null
+                || !(get(/databases/$(database)/documents/posts/$(postId)/comments/$(request.resource.data.parentId)).data.parentId is string)
+              )
+            )
+          );
 
         // Update: comment author can edit their comment (but cannot change authorId),
         // OR signed-in users may only update reaction fields (`reactions`/`reactedBy`).
