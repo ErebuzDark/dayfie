@@ -10,6 +10,8 @@ import { useAuth } from '@/store/AuthContext'
 import { deletePost } from '@/services/postsService'
 import { formatRelativeTime, getInitials } from '@/lib/utils'
 import ReactionBar from '@/features/reactions/components/ReactionBar'
+import CommentComposer from '@/features/comments/components/CommentComposer'
+import CommentList from '@/features/comments/components/CommentList'
 
 export default function PostCard({ post, onEdit }) {
   const { user } = useAuth()
@@ -248,6 +250,12 @@ export default function PostCard({ post, onEdit }) {
 
         {/* Reactions */}
         <ReactionBar post={post} />
+
+        {/* Comments */}
+        <div style={{ marginTop: '0.9rem' }}>
+          <CommentComposer postId={post.id} />
+          <CommentList postId={post.id} />
+        </div>
       </div>
 
       {/* Lightbox */}

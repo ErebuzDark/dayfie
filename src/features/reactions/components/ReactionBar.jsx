@@ -12,7 +12,7 @@ const REACTIONS = [
   { key: 'angry', emoji: '😡', label: 'Angry', color: '#f97316' },
 ]
 
-export default function ReactionBar({ post }) {
+export default function ReactionBar({ post, item, onToggle }) {
   const { user } = useAuth()
   const [showPicker, setShowPicker] = useState(false)
   const [pending, setPending] = useState(false)
@@ -20,8 +20,9 @@ export default function ReactionBar({ post }) {
   const btnRef = useRef(null)
   const timerRef = useRef(null)
 
-  const reactions = post.reactions || {}
-  const reactedBy = post.reactedBy || {}
+  const target = item || post
+  const reactions = target?.reactions || {}
+  const reactedBy = target?.reactedBy || {}
   const myReaction = user ? reactedBy[user.uid] : null
   const myReactionInfo = REACTIONS.find((r) => r.key === myReaction)
 
@@ -52,7 +53,11 @@ export default function ReactionBar({ post }) {
     setPending(true)
     setShowPicker(false)
     try {
-      await toggleReaction(post.id, user.uid, reactionKey)
+      if (onToggle) {
+        await onToggle(target.id, user.uid, reactionKey)
+      } else {
+        await toggleReaction(post.id, user.uid, reactionKey)
+      }
     } catch {
       message.error('Could not save reaction')
     } finally {

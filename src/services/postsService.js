@@ -139,3 +139,57 @@ export async function toggleReaction(postId, uid, reactionType) {
 
   await updateDoc(postRef, { reactions, reactedBy })
 }
+
+// Comments
+export async function createComment(postId, { text, authorId, authorName, authorPhotoURL }) {
+  const commentsRef = collection(doc(db, POSTS_COLLECTION, postId), 'comments')
+  const refDoc = await addDoc(commentsRef, {
+    text,
+    authorId,
+    authorName: authorName || 'Anonymous',
+    authorPhotoURL: authorPhotoURL || null,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    reactions: { like: 0, heart: 0, care: 0, laugh: 0, sad: 0, angry: 0 },
+    reactedBy: {},
+  })
+  return refDoc.id
+}
+
+export function subscribeToComments(postId, callback) {
+  const commentsRef = collection(doc(db, POSTS_COLLECTION, postId), 'comments')
+  const q = query(commentsRef, orderBy('createdAt', 'asc'))
+  return onSnapshot(q, (snap) => {
+    const comments = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    callback(comments)
+  })
+}
+
+export async function deleteComment(postId, commentId) {
+  await deleteDoc(doc(collection(doc(db, POSTS_COLLECTION, postId), 'comments'), commentId))
+}
+
+export async function toggleCommentReaction(postId, commentId, uid, reactionType) {
+  const commentRef = doc(collection(doc(db, POSTS_COLLECTION, postId), 'comments'), commentId)
+  const snap = await getDoc(commentRef)
+  if (!snap.exists()) return
+
+  const data = snap.data()
+  const reactedBy = { ...data.reactedBy }
+  const reactions = { ...data.reactions }
+  const previousReaction = reactedBy[uid]
+
+  if (previousReaction && previousReaction !== reactionType) {
+    reactions[previousReaction] = Math.max(0, (reactions[previousReaction] || 1) - 1)
+  }
+
+  if (previousReaction === reactionType) {
+    delete reactedBy[uid]
+    reactions[reactionType] = Math.max(0, (reactions[reactionType] || 1) - 1)
+  } else {
+    reactedBy[uid] = reactionType
+    reactions[reactionType] = (reactions[reactionType] || 0) + 1
+  }
+
+  await updateDoc(commentRef, { reactions, reactedBy })
+}

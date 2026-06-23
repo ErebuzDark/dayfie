@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Posts collection
+    match /posts/{postId} {
+      // Anyone can read posts
+      allow read: if true;
+      // Only authenticated users can create
+      allow create: if isSignedIn();
+      // Only the author can update/delete, except reactions which anyone signed-in may change
+      allow update: if isSignedIn()
+        && (
+          request.auth.uid == resource.data.authorId
+          || request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['reactions', 'reactedBy'])
+        );
+      allow delete: if isSignedIn()
+        && request.auth.uid == resource.data.authorId;
+
+      // Comments subcollection under posts
+      match /comments/{commentId} {
+        // Anyone can read comments
+        allow read: if true;
+
+        // Create: only authenticated users, authorId must match signer, and text limited
+        allow create: if isSignedIn()
+          && request.resource.data.authorId == request.auth.uid
+          && (request.resource.data.text is string)
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000;
+
+        // Update: comment author can edit their comment (but cannot change authorId),
+        // OR signed-in users may only update reaction fields (`reactions`/`reactedBy`).
+        allow update: if isSignedIn() && (
+          // author edits (ensure authorId is not changed)
+          (request.auth.uid == resource.data.authorId
+            && request.resource.data.authorId == resource.data.authorId)
+          // OR only reactions are being changed
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'reactedBy']))
+        );
+
+        // Delete: comment author or the parent post author can delete a comment
+        allow delete: if isSignedIn() && (
+          request.auth.uid == resource.data.authorId
+          || request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.authorId
+        );
+      }
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
