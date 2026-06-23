@@ -62,113 +62,41 @@ export default function PostCard({ post, onEdit }) {
   ]
 
   return (
-    <article className="post-card animate-fade-in-up" style={{ marginBottom: '1.25rem' }}>
+    <article className="post-card animate-fade-in-up mb-5">
       {/* Post Image */}
       {post.imageUrl && (
-        <div
-          style={{
-            width: '100%',
-            maxHeight: 420,
-            overflow: 'hidden',
-            cursor: 'pointer',
-            borderBottom: '1px solid oklch(94% 0 0)',
-          }}
-          onClick={() => setImageOpen(true)}
-        >
+        <div className="w-full max-h-[420px] overflow-hidden cursor-pointer border-b" onClick={() => setImageOpen(true)}>
           <img
             src={post.imageUrl}
             alt={post.caption || 'Post image'}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-              transition: 'transform 0.4s ease',
-              maxHeight: 420,
-            }}
+            className="w-full h-full object-cover block transition-transform duration-300 max-h-[420px]"
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.015)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           />
         </div>
       )}
 
-      <div style={{ padding: '1.1rem 1.25rem' }}>
+      <div className="p-4 sm:p-5">
         {/* Author Row */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '0.85rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
             {/* Avatar */}
             {photoURL ? (
-              <img
-                src={photoURL}
-                alt={authorName}
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '2px solid oklch(91% 0 0)',
-                  flexShrink: 0,
-                }}
-              />
+              <img src={photoURL} alt={authorName} className="w-9 h-9 rounded-full object-cover border-2 border-neutral-200 flex-shrink-0" />
             ) : (
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: '50%',
-                  background: 'oklch(96% 0.04 265)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: 'Poppins, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  color: 'oklch(55% 0.18 265)',
-                  border: '2px solid oklch(91% 0 0)',
-                  flexShrink: 0,
-                }}
-              >
+              <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-neutral-700 border-2 border-neutral-200 flex-shrink-0">
                 {getInitials(authorName)}
               </div>
             )}
 
             <div>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: 'Poppins, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  color: 'oklch(16% 0 0)',
-                  lineHeight: 1.3,
-                }}
-              >
-                {authorName}
-              </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: 'Poppins, sans-serif',
-                  fontSize: '0.75rem',
-                  color: 'oklch(58% 0 0)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
+              <p className="m-0 font-semibold text-sm text-neutral-800 leading-snug">{authorName}</p>
+              <p className="m-0 text-xs text-neutral-500 flex items-center gap-1">
                 <ClockCircleOutlined style={{ fontSize: 10 }} />
                 {formatRelativeTime(post.createdAt)}
-                {post.updatedAt &&
-                  post.updatedAt?.seconds !== post.createdAt?.seconds && (
-                    <span style={{ color: 'oklch(72% 0 0)' }}> · edited</span>
-                  )}
+                {post.updatedAt && post.updatedAt?.seconds !== post.createdAt?.seconds && (
+                  <span className="text-neutral-600"> · edited</span>
+                )}
               </p>
             </div>
           </div>
@@ -180,22 +108,7 @@ export default function PostCard({ post, onEdit }) {
               placement="bottomRight"
               trigger={['click']}
             >
-              <button
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '0.3rem',
-                  borderRadius: '50%',
-                  color: 'oklch(58% 0 0)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'oklch(95% 0 0)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-              >
+              <button className="p-2 rounded-full text-neutral-600 hover:bg-neutral-100">
                 <MoreOutlined style={{ fontSize: 18 }} />
               </button>
             </Dropdown>
@@ -204,74 +117,39 @@ export default function PostCard({ post, onEdit }) {
 
         {/* Title */}
         {post.title && (
-          <h2
-            style={{
-              margin: '0 0 0.5rem 0',
-              fontFamily: 'Poppins, sans-serif',
-              fontWeight: 600,
-              fontSize: '1.05rem',
-              color: 'oklch(16% 0 0)',
-              lineHeight: 1.4,
-            }}
-          >
-            {post.title}
-          </h2>
+          <h2 className="mb-2 font-semibold text-lg text-neutral-800 leading-tight">{post.title}</h2>
         )}
 
         {/* Caption / body */}
         {post.caption && (
-          <p
-            style={{
-              margin: '0 0 0.9rem 0',
-              fontFamily: 'Poppins, sans-serif',
-              fontSize: '0.9rem',
-              color: 'oklch(36% 0 0)',
-              lineHeight: 1.7,
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {post.caption}
-          </p>
+          <p className="mb-4 text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">{post.caption}</p>
         )}
 
         {/* Tags */}
         {post.tags?.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.9rem' }}>
+          <div className="flex flex-wrap gap-1 mb-4">
             {post.tags.map((tag) => (
-              <span key={tag} className="tag-chip">
-                #{tag}
-              </span>
+              <span key={tag} className="tag-chip">#{tag}</span>
             ))}
           </div>
         )}
 
         {/* Divider */}
-        <div className="divider" style={{ margin: '0.75rem 0' }} />
+        <div className="divider my-3" />
 
         {/* Reactions */}
         <ReactionBar post={post} />
 
         {/* Comments */}
-        <div style={{ marginTop: '0.9rem' }}>
+        <div className="mt-4">
           <CommentComposer postId={post.id} />
           <CommentList postId={post.id} />
         </div>
       </div>
 
       {/* Lightbox */}
-      <Modal
-        open={imageOpen}
-        onCancel={() => setImageOpen(false)}
-        footer={null}
-        centered
-        width="auto"
-        styles={{ body: { padding: 0 }, content: { background: 'transparent', boxShadow: 'none', borderRadius: '1rem', overflow: 'hidden' } }}
-      >
-        <img
-          src={post.imageUrl}
-          alt={post.caption || 'Post image'}
-          style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', display: 'block', borderRadius: '1rem' }}
-        />
+      <Modal open={imageOpen} onCancel={() => setImageOpen(false)} footer={null} centered width="auto" bodyStyle={{ padding: 0 }}>
+        <img src={post.imageUrl} alt={post.caption || 'Post image'} className="max-w-[90vw] max-h-[85vh] object-contain block rounded-lg" />
       </Modal>
     </article>
   )

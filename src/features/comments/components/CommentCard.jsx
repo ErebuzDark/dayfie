@@ -29,47 +29,46 @@ export default function CommentCard({ comment, postId, replies = [] , isReply = 
   }
 
   return (
-    <div style={{ display: 'flex', gap: '0.7rem', padding: isReply ? '0.3rem 0' : '0.6rem 0', marginLeft: isReply ? 36 : 0 }}>
+    <div className={`flex gap-3 ${isReply ? 'py-1 ml-9' : 'py-2'}`}>
       {comment.authorPhotoURL ? (
-        <img src={comment.authorPhotoURL} alt={comment.authorName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+        <img src={comment.authorPhotoURL} alt={comment.authorName} className="w-9 h-9 rounded-full object-cover" />
       ) : (
-        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'oklch(96% 0.04 265)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+        <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-neutral-700">
           {getInitials(comment.authorName)}
         </div>
       )}
-        <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+      <div className="flex-1">
+        <div className="flex justify-between gap-2">
           <div>
-            <strong style={{ display: 'block' }}>{comment.authorName || 'Anonymous'}</strong>
-            <small style={{ color: 'oklch(58% 0 0)' }}>{formatRelativeTime(comment.createdAt)}</small>
+            <strong className="block text-sm">{comment.authorName || 'Anonymous'}</strong>
+            <small className="text-xs text-neutral-500">{formatRelativeTime(comment.createdAt)}</small>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div className="flex gap-2 items-center">
             {!isReply && (
-              <button onClick={() => setShowReply((v) => !v)} style={{ background: 'none', border: 'none', color: 'oklch(58% 0 0)', cursor: 'pointer' }}>{showReply ? 'Cancel' : 'Reply'}</button>
+              <button onClick={() => setShowReply((v) => !v)} className="text-sm text-neutral-600 hover:underline">{showReply ? 'Cancel' : 'Reply'}</button>
             )}
             {isOwner && (
-              <button onClick={handleDelete} style={{ background: 'none', border: 'none', color: 'oklch(58% 0 0)', cursor: 'pointer' }}>Delete</button>
+              <button onClick={handleDelete} className="text-sm text-red-500 hover:underline">Delete</button>
             )}
           </div>
         </div>
-        <p style={{ margin: '0.4rem 0 0 0', whiteSpace: 'pre-wrap' }}>{comment.text}</p>
+        <p className="mt-1 text-sm whitespace-pre-wrap">{comment.text}</p>
 
-        <div style={{ marginTop: '0.45rem' }}>
-            <ReactionBar item={comment} onToggle={(commentId, uid, reactionKey) => toggleCommentReaction(postId, commentId, uid, reactionKey)} />
+        <div className="mt-2">
+          <ReactionBar item={comment} onToggle={(commentId, uid, reactionKey) => toggleCommentReaction(postId, commentId, uid, reactionKey)} />
         </div>
-          {/* Reply composer */}
-          {showReply && (
-            <div style={{ marginTop: '0.5rem' }}>
-              <CommentComposer postId={postId} parentId={comment.id} onCancel={() => setShowReply(false)} />
-            </div>
-          )}
 
-          {/* Replies */}
-          {replies?.length > 0 && (
-            <div style={{ marginTop: '0.6rem' }}>
-              <RepliesList replies={replies} postId={postId} />
-            </div>
-          )}
+        {showReply && (
+          <div className="mt-3">
+            <CommentComposer postId={postId} parentId={comment.id} onCancel={() => setShowReply(false)} />
+          </div>
+        )}
+
+        {replies?.length > 0 && (
+          <div className="mt-3">
+            <RepliesList replies={replies} postId={postId} />
+          </div>
+        )}
       </div>
     </div>
   )

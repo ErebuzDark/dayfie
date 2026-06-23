@@ -83,113 +83,50 @@ export default function ReactionBar({ post, item, onToggle }) {
     .slice(0, 3)
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
+    <div className="flex items-center gap-2 relative">
       {/* Reaction summary badges */}
       {topReactions.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            marginRight: '0.25rem',
-          }}
-        >
+        <div className="flex items-center -space-x-1 mr-1">
           {topReactions.map((r) => (
             <span
               key={r.key}
               title={`${reactions[r.key]} ${r.label}`}
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                background: '#fff',
-                border: '1.5px solid oklch(91% 0 0)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.7rem',
-                lineHeight: 1,
-                marginLeft: -4,
-                boxShadow: '0 1px 3px oklch(0% 0 0 / 0.08)',
-                cursor: 'default',
-              }}
+              className="w-5 h-5 rounded-full bg-white border-[1.5px] border-neutral-200 flex items-center justify-center text-[10px] shadow-sm"
             >
               {r.emoji}
             </span>
           ))}
           {totalReactions > 0 && (
-            <span
-              style={{
-                fontSize: '0.78rem',
-                color: 'oklch(46% 0 0)',
-                marginLeft: 6,
-                fontFamily: 'Poppins, sans-serif',
-                fontWeight: 500,
-              }}
-            >
-              {totalReactions}
-            </span>
+            <span className="ml-2 text-sm text-neutral-600 font-medium">{totalReactions}</span>
           )}
         </div>
       )}
 
       {/* React button */}
-      <div style={{ position: 'relative' }}>
+      <div className="relative">
         <button
           ref={btnRef}
-          className="reaction-btn"
+          className={`reaction-btn inline-flex items-center gap-2 px-3 py-1 rounded-full border ${myReaction ? 'font-semibold' : ''}`}
           onClick={handleMainBtnClick}
           disabled={pending}
-          style={{
-            color: myReaction ? myReactionInfo?.color : undefined,
-            background: myReaction ? `${myReactionInfo?.color}15` : undefined,
-            fontWeight: myReaction ? 600 : undefined,
-          }}
+          style={{ color: myReaction ? myReactionInfo?.color : undefined, background: myReaction ? `${myReactionInfo?.color}15` : undefined }}
         >
-          <span style={{ fontSize: '1rem', lineHeight: 1 }}>
-            {myReactionInfo ? myReactionInfo.emoji : '👍'}
-          </span>
-          <span style={{ fontSize: '0.8rem' }}>
-            {myReactionInfo ? myReactionInfo.label : 'React'}
-          </span>
+          <span className="text-base leading-none">{myReactionInfo ? myReactionInfo.emoji : '👍'}</span>
+          <span className="text-sm">{myReactionInfo ? myReactionInfo.label : 'React'}</span>
         </button>
 
         {/* Reaction picker popup */}
         {showPicker && (
           <div
             ref={pickerRef}
-            style={{
-              position: 'absolute',
-              bottom: 'calc(100% + 8px)',
-              left: 0,
-              background: '#fff',
-              border: '1px solid oklch(91% 0 0)',
-              borderRadius: 999,
-              boxShadow: '0 8px 28px oklch(0% 0 0 / 0.13)',
-              padding: '0.45rem 0.75rem',
-              display: 'flex',
-              gap: '0.2rem',
-              zIndex: 50,
-              animation: 'scaleIn 0.18s ease both',
-              transformOrigin: 'bottom left',
-            }}
+            className="absolute bottom-[calc(100%+8px)] left-0 bg-white border rounded-full shadow-lg p-2 flex gap-1 z-50 animate-scale-in origin-bottom-left"
           >
             {REACTIONS.map((r, i) => (
               <button
                 key={r.key}
                 title={r.label}
                 onClick={() => handleReact(r.key)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  fontSize: '1.4rem',
-                  lineHeight: 1,
-                  padding: '0.2rem',
-                  borderRadius: '50%',
-                  transition: 'transform 0.15s ease',
-                  animation: `popIn 0.25s ease ${i * 30}ms both`,
-                }}
+                className="bg-transparent border-0 cursor-pointer text-xl p-1 rounded-full transform transition-transform duration-150"
                 onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.35)')}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               >

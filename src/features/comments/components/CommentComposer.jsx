@@ -33,16 +33,17 @@ export default function CommentComposer({ postId, parentId = null, onPosted, onC
   }
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+    <div className="flex gap-2 items-start">
       <Input.TextArea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={user ? (parentId ? 'Write a reply...' : 'Write a comment...') : 'Sign in to comment'}
         autoSize={{ minRows: 1, maxRows: 4 }}
         disabled={!user}
+        className="min-w-0 w-full p-2 rounded-md border border-neutral-200 focus:border-primary-500"
       />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <Button type="primary" onClick={handleSubmit} loading={sending} disabled={!user || !text.trim()}>
+      <div className="flex flex-col gap-2">
+        <Button type="primary" onClick={handleSubmit} loading={sending} disabled={!user || !text.trim()} className="whitespace-nowrap">
           {parentId ? 'Reply' : 'Comment'}
         </Button>
         {onCancel && (

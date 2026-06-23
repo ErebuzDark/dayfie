@@ -24,7 +24,7 @@ export default function CommentList({ postId }) {
   })
 
   return (
-    <div style={{ marginTop: '0.6rem' }}>
+    <div className="mt-3">
       {top.map((c) => (
         <CommentCard key={c.id} comment={c} postId={postId} replies={repliesByParent[c.id] || []} />
       ))}

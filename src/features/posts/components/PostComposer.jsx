@@ -142,68 +142,30 @@ export default function PostComposer({ open, onClose, editPost }) {
       footer={null}
       centered
       width={520}
-      title={
-        <span
-          style={{
-            fontFamily: 'Poppins, sans-serif',
-            fontWeight: 600,
-            fontSize: '1rem',
-            color: 'oklch(16% 0 0)',
-          }}
-        >
-          {isEditing ? 'Edit Post' : 'Share a Dayfie'}
-        </span>
-      }
+      title={<span className="font-semibold text-base text-neutral-800">{isEditing ? 'Edit Post' : 'Share a Dayfie'}</span>}
       closable={!submitting}
       maskClosable={!submitting}
-      styles={{
-        body: { padding: '1rem 1.5rem 1.5rem' },
-      }}
+      bodyStyle={{ padding: '1rem 1.5rem 1.5rem' }}
     >
       {/* Author hint */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.1rem' }}>
+      <div className="flex items-center gap-3 mb-4">
         {photoURL ? (
-          <img
-            src={photoURL}
-            alt={displayName}
-            style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: '2px solid oklch(91% 0 0)' }}
-          />
+          <img src={photoURL} alt={displayName} className="w-9 h-9 rounded-full object-cover border-2 border-neutral-200" />
         ) : (
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              background: 'oklch(96% 0.04 265)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'Poppins, sans-serif',
-              fontWeight: 700,
-              fontSize: '0.78rem',
-              color: 'oklch(55% 0.18 265)',
-              border: '2px solid oklch(91% 0 0)',
-            }}
-          >
+          <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-neutral-700 border-2 border-neutral-200">
             {getInitials(displayName)}
           </div>
         )}
         <div>
-          <p style={{ margin: 0, fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: '0.88rem', color: 'oklch(16% 0 0)', lineHeight: 1.3 }}>
-            {displayName}
-          </p>
-          <p style={{ margin: 0, fontFamily: 'Poppins, sans-serif', fontSize: '0.75rem', color: 'oklch(58% 0 0)' }}>
-            Posting publicly
-          </p>
+          <p className="m-0 font-semibold text-sm text-neutral-800">{displayName}</p>
+          <p className="m-0 text-xs text-neutral-500">Posting publicly</p>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+      <div className="flex flex-col gap-3">
         {/* Title */}
         <div>
-          <label style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.8rem', fontWeight: 500, color: 'oklch(46% 0 0)', display: 'block', marginBottom: '0.35rem' }}>
-            Title <span style={{ color: 'oklch(72% 0 0)' }}>(optional)</span>
-          </label>
+          <label className="block text-sm font-medium text-neutral-600 mb-1">Title <span className="text-neutral-500">(optional)</span></label>
           <input
             className="input-field"
             placeholder="Give your post a title…"
@@ -215,76 +177,28 @@ export default function PostComposer({ open, onClose, editPost }) {
 
         {/* Caption */}
         <div>
-          <label style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.8rem', fontWeight: 500, color: 'oklch(46% 0 0)', display: 'block', marginBottom: '0.35rem' }}>
-            What's on your mind? <span style={{ color: '#ef4444' }}>*</span>
-          </label>
-          <textarea
-            className="textarea-field"
-            placeholder="Share your thoughts, your story, your day…"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            maxLength={2000}
-            rows={4}
-          />
-          <p style={{ margin: '0.25rem 0 0', fontFamily: 'Poppins, sans-serif', fontSize: '0.72rem', color: 'oklch(72% 0 0)', textAlign: 'right' }}>
-            {caption.length}/2000
-          </p>
+          <label className="block text-sm font-medium text-neutral-600 mb-1">What's on your mind? <span className="text-red-500">*</span></label>
+          <textarea className="textarea-field" placeholder="Share your thoughts, your story, your day…" value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={2000} rows={4} />
+          <p className="mt-1 text-xs text-neutral-500 text-right">{caption.length}/2000</p>
         </div>
 
         {/* Image upload */}
         <div>
-          <label style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.8rem', fontWeight: 500, color: 'oklch(46% 0 0)', display: 'block', marginBottom: '0.35rem' }}>
-            Photo <span style={{ color: 'oklch(72% 0 0)' }}>(optional)</span>
-          </label>
+          <label className="block text-sm font-medium text-neutral-600 mb-1">Photo <span className="text-neutral-500">(optional)</span></label>
 
           {imagePreview ? (
-            <div style={{ position: 'relative', borderRadius: '0.875rem', overflow: 'hidden', border: '1.5px solid oklch(91% 0 0)' }}>
-              <img
-                src={imagePreview}
-                alt="Preview"
-                style={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block' }}
-              />
-              <button
-                onClick={removeImage}
-                style={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  background: 'rgba(0,0,0,0.55)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: 28,
-                  height: 28,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  backdropFilter: 'blur(4px)',
-                }}
-              >
+            <div className="relative rounded-xl overflow-hidden border-[1.5px] border-neutral-200">
+              <img src={imagePreview} alt="Preview" className="w-full max-h-[260px] object-cover block" />
+              <button onClick={removeImage} className="absolute top-2 right-2 bg-black/60 rounded-full w-7 h-7 flex items-center justify-center text-white backdrop-blur-sm">
                 <CloseOutlined style={{ fontSize: 12 }} />
               </button>
             </div>
           ) : (
-            <Upload.Dragger
-              accept="image/*"
-              beforeUpload={handleImageSelect}
-              showUploadList={false}
-              style={{
-                borderRadius: '0.875rem',
-                border: '1.5px dashed oklch(85% 0 0)',
-                background: 'oklch(99% 0 0)',
-              }}
-            >
-              <div style={{ padding: '1.25rem', textAlign: 'center' }}>
-                <CameraOutlined style={{ fontSize: 28, color: 'oklch(72% 0 0)', marginBottom: 8 }} />
-                <p style={{ margin: 0, fontFamily: 'Poppins, sans-serif', fontSize: '0.85rem', color: 'oklch(58% 0 0)', fontWeight: 500 }}>
-                  Click or drag a photo here
-                </p>
-                <p style={{ margin: '0.2rem 0 0', fontFamily: 'Poppins, sans-serif', fontSize: '0.72rem', color: 'oklch(72% 0 0)' }}>
-                  PNG, JPG, WEBP · Max 8MB
-                </p>
+            <Upload.Dragger accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
+              <div className="p-4 text-center">
+                <CameraOutlined style={{ fontSize: 28, color: 'var(--color-neutral-600)', marginBottom: 8 }} />
+                <p className="m-0 text-sm text-neutral-600 font-medium">Click or drag a photo here</p>
+                <p className="mt-1 text-xs text-neutral-500">PNG, JPG, WEBP · Max 8MB</p>
               </div>
             </Upload.Dragger>
           )}
@@ -292,15 +206,8 @@ export default function PostComposer({ open, onClose, editPost }) {
 
         {/* Tags */}
         <div>
-          <label style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.8rem', fontWeight: 500, color: 'oklch(46% 0 0)', display: 'block', marginBottom: '0.35rem' }}>
-            Tags <span style={{ color: 'oklch(72% 0 0)' }}>(optional, comma-separated)</span>
-          </label>
-          <input
-            className="input-field"
-            placeholder="e.g. travel, food, selfie"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-          />
+          <label className="block text-sm font-medium text-neutral-600 mb-1">Tags <span className="text-neutral-500">(optional, comma-separated)</span></label>
+          <input className="input-field" placeholder="e.g. travel, food, selfie" value={tags} onChange={(e) => setTags(e.target.value)} />
         </div>
 
         {/* Upload progress */}
@@ -309,16 +216,9 @@ export default function PostComposer({ open, onClose, editPost }) {
         )}
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-          <button className="btn-ghost" onClick={handleClose} disabled={submitting}>
-            Cancel
-          </button>
-          <button
-            className="btn-primary"
-            onClick={handleSubmit}
-            disabled={submitting || (!caption.trim() && !title.trim())}
-            style={{ opacity: submitting || (!caption.trim() && !title.trim()) ? 0.6 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}
-          >
+        <div className="flex gap-3 justify-end mt-1">
+          <button className="btn-ghost" onClick={handleClose} disabled={submitting}>Cancel</button>
+          <button className="btn-primary disabled:opacity-60" onClick={handleSubmit} disabled={submitting || (!caption.trim() && !title.trim())}>
             {submitting ? (uploadProgress > 0 ? `Uploading ${uploadProgress}%…` : 'Saving…') : isEditing ? 'Save Changes' : 'Share Post'}
           </button>
         </div>
