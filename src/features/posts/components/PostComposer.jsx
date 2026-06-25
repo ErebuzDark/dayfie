@@ -6,7 +6,7 @@ import {
   PlusOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/store/AuthContext'
-import { createPost, updatePost, uploadImage, deleteImage } from '@/services/postsService'
+import { createPost, updatePost, uploadMedia, deleteMedia } from '@/services/postsService'
 import { getInitials } from '@/lib/utils'
 
 export default function PostComposer({ open, onClose, editPost }) {
@@ -15,8 +15,8 @@ export default function PostComposer({ open, onClose, editPost }) {
   const [title, setTitle] = useState('')
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState('')
-  // images: array of { file?, preview?, url?, path? }
-  const [images, setImages] = useState([])
+  // media items: array of { file?, preview?, url?, path?, type:'image'|'video' }
+  const [mediaItems, setMediaItems] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [submitting, setSubmitting] = useState(false)
 
@@ -29,10 +29,19 @@ export default function PostComposer({ open, onClose, editPost }) {
       setCaption(editPost.caption || '')
       setTags(editPost.tags?.join(', ') || '')
       // initialize images from editPost: support legacy single image or new imageUrls
-      const existingUrls = Array.isArray(editPost.imageUrls) ? editPost.imageUrls : (editPost.imageUrl ? [editPost.imageUrl] : [])
-      const existingPaths = Array.isArray(editPost.imagePaths) ? editPost.imagePaths : (editPost.imagePath ? [editPost.imagePath] : [])
-      const initial = existingUrls.map((u, i) => ({ url: u, path: existingPaths[i] || null }))
-      setImages(initial)
+      let initial = []
+      if (Array.isArray(editPost.mediaItems) && editPost.mediaItems.length) {
+        initial = editPost.mediaItems.map((item) => ({
+          url: item.url,
+          path: item.path || null,
+          type: item.type || 'image',
+        }))
+      } else {
+        const existingUrls = Array.isArray(editPost.imageUrls) ? editPost.imageUrls : (editPost.imageUrl ? [editPost.imageUrl] : [])
+        const existingPaths = Array.isArray(editPost.imagePaths) ? editPost.imagePaths : (editPost.imagePath ? [editPost.imagePath] : [])
+        initial = existingUrls.map((u, i) => ({ url: u, path: existingPaths[i] || null, type: 'image' }))
+      }
+      setMediaItems(initial)
     } else {
       resetForm()
     }
@@ -42,7 +51,7 @@ export default function PostComposer({ open, onClose, editPost }) {
     setTitle('')
     setCaption('')
     setTags('')
-    setImages([])
+    setMediaItems([])
     setUploadProgress(0)
   }
 
@@ -53,16 +62,20 @@ export default function PostComposer({ open, onClose, editPost }) {
     }
   }
 
-  function handleImageSelect(file) {
+  function handleMediaSelect(file) {
     const isImage = file.type && file.type.startsWith('image/')
+    const isVideo = file.type && file.type.startsWith('video/')
     const isLt8M = file.size / 1024 / 1024 < 8
-    if (!isImage) { message.error('Please upload an image file'); return Upload.LIST_IGNORE }
-    if (!isLt8M) { message.error('Image must be smaller than 8MB'); return Upload.LIST_IGNORE }
-    if (images.length >= 10) { message.error('Maximum 10 images per post'); return Upload.LIST_IGNORE }
+    const isLt100M = file.size / 1024 / 1024 < 100
+    if (!isImage && !isVideo) { message.error('Please upload an image or video file'); return Upload.LIST_IGNORE }
+    if (isImage && !isLt8M) { message.error('Image must be smaller than 8MB'); return Upload.LIST_IGNORE }
+    if (isVideo && !isLt100M) { message.error('Video must be smaller than 100MB'); return Upload.LIST_IGNORE }
+    if (mediaItems.length >= 10) { message.error('Maximum 10 media items per post'); return Upload.LIST_IGNORE }
     const preview = URL.createObjectURL(file)
-    setImages((prev) => {
+    const type = isVideo ? 'video' : 'image'
+    setMediaItems((prev) => {
       if (prev.length >= 10) return prev
-      return [...prev, { file, preview }]
+      return [...prev, { file, preview, type }]
     })
     return false // prevent auto-upload
   }
@@ -70,19 +83,23 @@ export default function PostComposer({ open, onClose, editPost }) {
   function addFiles(fileList) {
     const arr = Array.from(fileList || [])
     if (!arr.length) return
-    setImages((prev) => {
+    setMediaItems((prev) => {
       const copy = prev.slice()
       for (const file of arr) {
         if (copy.length >= 10) {
-          message.error('Maximum 10 images per post')
+          message.error('Maximum 10 media items per post')
           break
         }
         const isImage = file.type && file.type.startsWith('image/')
+        const isVideo = file.type && file.type.startsWith('video/')
         const isLt8M = file.size / 1024 / 1024 < 8
-        if (!isImage) { message.error('Only image files are allowed'); continue }
-        if (!isLt8M) { message.error('Image must be smaller than 8MB'); continue }
+        const isLt100M = file.size / 1024 / 1024 < 100
+        if (!isImage && !isVideo) { message.error('Only image or video files are allowed'); continue }
+        if (isImage && !isLt8M) { message.error('Image must be smaller than 8MB'); continue }
+        if (isVideo && !isLt100M) { message.error('Video must be smaller than 100MB'); continue }
         const preview = URL.createObjectURL(file)
-        copy.push({ file, preview })
+        const type = isVideo ? 'video' : 'image'
+        copy.push({ file, preview, type })
       }
       return copy
     })
@@ -94,8 +111,8 @@ export default function PostComposer({ open, onClose, editPost }) {
     e.target.value = null
   }
 
-  function removeImage(index) {
-    setImages((prev) => {
+  function removeMedia(index) {
+    setMediaItems((prev) => {
       const copy = prev.slice()
       const removed = copy.splice(index, 1)
       // revoke preview URL if created
@@ -112,13 +129,14 @@ export default function PostComposer({ open, onClose, editPost }) {
 
     setSubmitting(true)
     try {
-      // prepare existing images and files
-      const original = (editPost ? (Array.isArray(editPost.imagePaths) ? editPost.imagePaths : (editPost.imagePath ? [editPost.imagePath] : [])) : [])
-      const originalUrls = (editPost ? (Array.isArray(editPost.imageUrls) ? editPost.imageUrls : (editPost.imageUrl ? [editPost.imageUrl] : [])) : [])
+      // prepare existing media and files
+      const originalMedia = editPost ? (
+        Array.isArray(editPost.mediaItems) ? editPost.mediaItems : (Array.isArray(editPost.imageUrls) ? editPost.imageUrls.map((u, i) => ({ url: u, path: (Array.isArray(editPost.imagePaths) ? editPost.imagePaths[i] : editPost.imagePath || null), type: 'image' })) : (editPost.imageUrl ? [{ url: editPost.imageUrl, path: editPost.imagePath || null, type: 'image' }] : []))
+      ) : []
 
-      // images state items: some have { url, path } (existing) or { file, preview }
-      const newFiles = images.filter((i) => i.file)
-      const keptExisting = images.filter((i) => i.url).map((i) => i.url)
+      // mediaItems state items: some have { url, path, type } (existing) or { file, preview, type }
+      const newFiles = mediaItems.filter((item) => item.file)
+      const keptExisting = mediaItems.filter((item) => item.url)
 
       const uploadedResults = []
       // upload new files sequentially and aggregate progress
@@ -127,51 +145,39 @@ export default function PostComposer({ open, onClose, editPost }) {
         let uploadedSoFar = 0
         for (let idx = 0; idx < newFiles.length; idx++) {
           const f = newFiles[idx].file
-          const res = await uploadImage(f, user.uid, (p) => {
-            // aggregate: uploadedSoFar completes previous files, plus p% of current
+          const res = await uploadMedia(f, user.uid, (p) => {
             const agg = Math.round(((uploadedSoFar + (p / 100)) / total) * 100)
             setUploadProgress(agg)
           })
-          uploadedResults.push(res)
+          uploadedResults.push({ url: res.url, path: res.path, type: res.type || (f.type.startsWith('video/') ? 'video' : 'image') })
           uploadedSoFar += 1
         }
       }
 
-      // build final arrays: start with kept existing (url + maybe path), then append uploaded results
-      let finalImageUrls = []
-      let finalImagePaths = []
-      // preserved existing (in order)
-      images.forEach((it) => {
-        if (it.url) {
-          finalImageUrls.push(it.url)
-          if (it.path) finalImagePaths.push(it.path)
-        }
+      // build final media list: keep existing items then append newly uploaded items
+      const finalMediaItems = []
+      keptExisting.forEach((it) => {
+        finalMediaItems.push({ url: it.url, path: it.path || null, type: it.type || 'image' })
       })
-      // append uploaded in insertion order
-      uploadedResults.forEach((r) => {
-        finalImageUrls.push(r.url)
-        finalImagePaths.push(r.path)
+      uploadedResults.forEach((res) => {
+        finalMediaItems.push({ url: res.url, path: res.path || null, type: res.type || 'image' })
       })
 
-      // Remove duplicate URLs while preserving order, and keep corresponding paths aligned when possible
+      // Remove duplicates while preserving order
       const seen = new Set()
-      const dedupedUrls = []
-      const dedupedPaths = []
-      for (let i = 0; i < finalImageUrls.length; i++) {
-        const u = finalImageUrls[i]
-        if (!u || seen.has(u)) continue
-        seen.add(u)
-        dedupedUrls.push(u)
-        dedupedPaths.push(finalImagePaths[i] || null)
+      const dedupedMedia = []
+      for (const item of finalMediaItems) {
+        if (!item.url || seen.has(item.url)) continue
+        seen.add(item.url)
+        dedupedMedia.push(item)
       }
-      finalImageUrls = dedupedUrls
-      finalImagePaths = dedupedPaths
 
       // Determine removed original paths to delete
-      const removedPaths = (originalUrls || []).map((u, i) => original[i]).filter(Boolean).filter((path) => !finalImagePaths.includes(path))
-      // delete removed images (best-effort)
+      const originalPaths = originalMedia.map((item) => item.path).filter(Boolean)
+      const keptPaths = dedupedMedia.map((item) => item.path).filter(Boolean)
+      const removedPaths = originalPaths.filter((path) => !keptPaths.includes(path))
       for (const p of removedPaths) {
-        try { await deleteImage(p) } catch (e) { console.warn('failed deleting image', p, e) }
+        try { await deleteMedia(p) } catch (e) { console.warn('failed deleting media', p, e) }
       }
 
       const parsedTags = tags
@@ -183,12 +189,14 @@ export default function PostComposer({ open, onClose, editPost }) {
       const authorName = userProfile?.displayName || user?.displayName || 'Anonymous'
       const authorPhotoURL = userProfile?.photoURL || user?.photoURL || null
 
+      const imageOnly = dedupedMedia.every((item) => item.type !== 'video')
       const postData = {
         title: title.trim(),
         caption: caption.trim(),
         tags: parsedTags,
-        imageUrls: finalImageUrls.length ? finalImageUrls : null,
-        imagePaths: finalImagePaths.length ? finalImagePaths : null,
+        mediaItems: dedupedMedia.length ? dedupedMedia : null,
+        imageUrls: imageOnly ? dedupedMedia.map((item) => item.url) : null,
+        imagePaths: imageOnly ? dedupedMedia.map((item) => item.path || null) : null,
         authorId: user.uid,
         authorName,
         authorPhotoURL,
@@ -225,7 +233,7 @@ export default function PostComposer({ open, onClose, editPost }) {
       title={<span className="font-semibold text-base text-neutral-800">{isEditing ? 'Edit Post' : 'Share a Dayfie'}</span>}
       closable={!submitting}
       maskClosable={!submitting}
-      bodyStyle={{ padding: '1rem 1.5rem 1.5rem' }}
+      styles={{ padding: '1rem 1.5rem 1.5rem' }}
     >
       {/* Author hint */}
       <div className="flex items-center gap-3 mb-4">
@@ -266,23 +274,28 @@ export default function PostComposer({ open, onClose, editPost }) {
         <div>
           <label className="block text-sm font-medium text-neutral-600 mb-1">Photo <span className="text-neutral-500">(optional)</span></label>
 
-          {images.length > 0 ? (
+          {mediaItems.length > 0 ? (
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
-                {images.map((it, i) => (
-                  <div key={i} className="relative rounded-md overflow-hidden">
-                    <img loading="lazy" src={it.preview || it.url} alt={`preview-${i}`} className="w-full h-28 object-cover block" />
-                    <button onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/60 rounded-full w-7 h-7 flex items-center justify-center text-white"><CloseOutlined style={{ fontSize: 12 }} /></button>
+                {mediaItems.map((it, i) => (
+                  <div key={i} className="relative rounded-md overflow-hidden bg-black/5">
+                    {it.type === 'video' ? (
+                      <video src={it.preview || it.url} className="w-full h-28 object-cover block" muted playsInline preload="metadata" />
+                    ) : (
+                      <img loading="lazy" src={it.preview || it.url} alt={`preview-${i}`} className="w-full h-28 object-cover block" />
+                    )}
+                    <button onClick={() => removeMedia(i)} className="absolute top-1 right-1 bg-black/60 rounded-full w-7 h-7 flex items-center justify-center text-white"><CloseOutlined style={{ fontSize: 12 }} /></button>
                   </div>
                 ))}
               </div>
 
-              {images.length < 10 && (
+              {mediaItems.length < 10 && (
                 <div>
-                  <Upload.Dragger multiple accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
+                  <Upload.Dragger multiple accept="image/*,video/*" beforeUpload={handleMediaSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
                     <div className="p-3 text-center">
                       <PlusOutlined style={{ fontSize: 20, color: 'var(--color-neutral-600)', marginBottom: 6 }} />
-                      <p className="m-0 text-sm text-neutral-600">Add more images — you can select multiple (max 10)</p>
+                      <p className="m-0 text-sm text-neutral-600">Add more media — you can select multiple (max 10)</p>
+                      <p className="mt-1 text-xs text-neutral-500">Images up to 8MB, videos up to 100MB</p>
                     </div>
                   </Upload.Dragger>
                   <div className="mt-2 text-center">
@@ -293,11 +306,11 @@ export default function PostComposer({ open, onClose, editPost }) {
             </div>
           ) : (
             <div>
-              <Upload.Dragger multiple accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
+              <Upload.Dragger multiple accept="image/*,video/*" beforeUpload={handleMediaSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
                 <div className="p-4 text-center">
                   <CameraOutlined style={{ fontSize: 28, color: 'var(--color-neutral-600)', marginBottom: 8 }} />
-                  <p className="m-0 text-sm text-neutral-600 font-medium">Click or drag photos here (you can select multiple)</p>
-                  <p className="mt-1 text-xs text-neutral-500">PNG, JPG, WEBP · Max 8MB per image · Up to 10 images</p>
+                  <p className="m-0 text-sm text-neutral-600 font-medium">Click or drag media here (you can select multiple)</p>
+                  <p className="mt-1 text-xs text-neutral-500">Image max 8MB | Video max 100MB | Up to 10 items</p>
                 </div>
               </Upload.Dragger>
               <div className="mt-2 text-center">
@@ -306,7 +319,7 @@ export default function PostComposer({ open, onClose, editPost }) {
             </div>
           )}
           {/* hidden file input used for camera or manual file pick */}
-          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" multiple onChange={handleFilesFromInput} className="hidden" />
+          <input ref={fileInputRef} type="file" accept="image/*,video/*" capture="environment" multiple onChange={handleFilesFromInput} className="hidden" />
         </div>
 
         {/* Tags */}

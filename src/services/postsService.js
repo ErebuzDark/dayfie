@@ -19,15 +19,16 @@ import { db } from '@/lib/firebase'
 
 const POSTS_COLLECTION = 'posts'
 
-// Upload image to Cloudinary (unsigned upload preset)
-export async function uploadImage(file, uid, onProgress) {
+// Upload media to Cloudinary (unsigned upload preset)
+export async function uploadMedia(file, uid, onProgress) {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
   const unsignedPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
   if (!cloudName || !unsignedPreset) {
     throw new Error('Cloudinary not configured: set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET')
   }
 
-  const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
+  const resourceType = file.type && file.type.startsWith('video/') ? 'video' : 'image'
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -44,8 +45,7 @@ export async function uploadImage(file, uid, onProgress) {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const res = JSON.parse(xhr.responseText)
-          // return secure URL and public_id as a path-like identifier
-          resolve({ url: res.secure_url, path: res.public_id })
+          resolve({ url: res.secure_url, path: res.public_id, type: resourceType })
         } catch (e) {
           reject(e)
         }
@@ -57,16 +57,21 @@ export async function uploadImage(file, uid, onProgress) {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('upload_preset', unsignedPreset)
+    if (resourceType === 'video') {
+      fd.append('resource_type', 'video')
+    }
     xhr.send(fd)
   })
 }
 
-// Delete image from Cloudinary
+// Delete media from Cloudinary
 // Note: Deletion requires Cloudinary API key/secret and should be done server-side.
-export async function deleteImage(imagePath) {
-  if (!imagePath) return
-  console.warn('Client-side image deletion is disabled. Delete images server-side using Cloudinary Admin API for public_id:', imagePath)
+export async function deleteMedia(mediaPath) {
+  if (!mediaPath) return
+  console.warn('Client-side media deletion is disabled. Delete media server-side using Cloudinary Admin API for public_id:', mediaPath)
 }
+
+export { uploadMedia as uploadImage, deleteMedia as deleteImage }
 
 // Create post
 export async function createPost(data) {
@@ -90,9 +95,15 @@ export async function updatePost(postId, data) {
 }
 
 // Delete post
-export async function deletePost(postId, imagePath) {
+export async function deletePost(postId, mediaPaths) {
   await deleteDoc(doc(db, POSTS_COLLECTION, postId))
-  if (imagePath) await deleteImage(imagePath)
+  if (Array.isArray(mediaPaths)) {
+    for (const path of mediaPaths) {
+      if (path) await deleteMedia(path)
+    }
+  } else if (mediaPaths) {
+    await deleteMedia(mediaPaths)
+  }
 }
 
 // Get all posts (real-time)

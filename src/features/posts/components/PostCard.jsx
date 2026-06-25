@@ -29,28 +29,34 @@ export default function PostCard({ post, onEdit }) {
 
   const isOwner = user?.uid === post.authorId
   const [authorProfile, setAuthorProfile] = useState(null)
-  // prepare images array (support legacy single image and new multiple images)
-  const rawImages = Array.isArray(post.imageUrls) && post.imageUrls.length > 0 ? post.imageUrls : (post.imageUrl ? [post.imageUrl] : [])
-  // normalize and dedupe
-  const images = []
+  // prepare media list (support new mediaItems and legacy image-only fields)
+  const rawMedia = Array.isArray(post.mediaItems) && post.mediaItems.length > 0
+    ? post.mediaItems
+    : (Array.isArray(post.imageUrls) && post.imageUrls.length > 0
+      ? post.imageUrls.map((u, i) => ({ url: u, type: 'image', path: Array.isArray(post.imagePaths) ? post.imagePaths[i] || null : (post.imagePath || null) }))
+      : (post.imageUrl ? [{ url: post.imageUrl, type: 'image', path: post.imagePath || null }] : []))
+
+  const media = []
   const _seen = new Set()
-  for (const it of rawImages) {
-    if (!it) continue
-    const url = typeof it === 'string' ? it : (it.url || '')
+  for (const item of rawMedia) {
+    if (!item) continue
+    const url = typeof item === 'string' ? item : (item.url || '')
+    const type = typeof item === 'object' && item.type ? item.type : 'image'
+    const path = typeof item === 'object' ? item.path || null : null
     if (!url) continue
     if (_seen.has(url)) continue
     _seen.add(url)
-    images.push(url)
+    media.push({ url, type, path })
   }
 
-  // debug: log raw vs normalized images to help track duplication issues
+  // debug: log raw vs normalized media to help track duplication issues
   useEffect(() => {
     try {
-      console.debug('[PostCard] debug', { postId: post?.id, rawImages, images, post })
+      console.debug('[PostCard] debug', { postId: post?.id, rawMedia, media, post })
     } catch (e) {
       /* ignore */
     }
-  }, [post?.id, rawImages?.length, images.length])
+  }, [post?.id, rawMedia?.length, media.length])
 
   const authorName = (authorProfile?.displayName) || post.authorName || 'Anonymous'
   const photoURL = (authorProfile?.photoURL) || post.authorPhotoURL || null
@@ -94,7 +100,10 @@ export default function PostCard({ post, onEdit }) {
       onOk: async () => {
         setDeleting(true)
         try {
-          await deletePost(post.id, post.imagePath)
+          const mediaPaths = Array.isArray(post.mediaItems)
+            ? post.mediaItems.map((item) => item.path).filter(Boolean)
+            : (Array.isArray(post.imagePaths) ? post.imagePaths : (post.imagePath ? [post.imagePath] : []))
+          await deletePost(post.id, mediaPaths)
           message.success('Post deleted')
         } catch {
           message.error('Failed to delete post')
@@ -122,65 +131,67 @@ export default function PostCard({ post, onEdit }) {
     },
   ]
 
+  const allImages = media.every((item) => item.type === 'image')
+
   return (
     <article className="post-card animate-fade-in-up mb-5 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-neutral-100">
-      {/* Post Images (single or multiple) */}
-      {images.length > 1 && (
+      {/* Post media */}
+      {media.length > 1 && allImages && (
         <div className="p-1">
           {/* 2 images: side-by-side */}
-          {images.length === 2 && (
+          {media.length === 2 && (
             <div className="grid grid-cols-2 gap-1">
-              {images.map((src, i) => (
+              {media.map((item, i) => (
                 <div key={i} className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(i); setImageOpen(true) }}>
-                  <img loading="lazy" src={src} alt={post.caption || `image-${i+1}`} className="w-full h-48 object-cover block hover:scale-105 transition-transform duration-200" />
+                  <img loading="lazy" src={item.url} alt={post.caption || `image-${i+1}`} className="w-full h-48 object-cover block hover:scale-105 transition-transform duration-200" />
                 </div>
               ))}
             </div>
           )}
 
           {/* 3 images: large left + two stacked right */}
-          {images.length === 3 && (
+          {media.length === 3 && (
             <div className="grid grid-cols-2 grid-rows-2 gap-1">
               <div className="row-span-2 overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(0); setImageOpen(true) }}>
-                <img loading="lazy" src={images[0]} alt="image-1" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
+                <img loading="lazy" src={media[0].url} alt="image-1" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
               </div>
               <div className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(1); setImageOpen(true) }}>
-                <img loading="lazy" src={images[1]} alt="image-2" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
+                <img loading="lazy" src={media[1].url} alt="image-2" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
               </div>
               <div className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(2); setImageOpen(true) }}>
-                <img loading="lazy" src={images[2]} alt="image-3" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
+                <img loading="lazy" src={media[2].url} alt="image-3" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
               </div>
             </div>
           )}
 
           {/* 4 images: 2x2 grid */}
-          {images.length === 4 && (
+          {media.length === 4 && (
             <div className="grid grid-cols-2 gap-1">
-              {images.map((src, i) => (
+              {media.map((item, i) => (
                 <div key={i} className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(i); setImageOpen(true) }}>
-                  <img loading="lazy" src={src} alt={`image-${i+1}`} className="w-full h-40 object-cover block hover:scale-105 transition-transform duration-200" />
+                  <img loading="lazy" src={item.url} alt={`image-${i+1}`} className="w-full h-40 object-cover block hover:scale-105 transition-transform duration-200" />
                 </div>
               ))}
             </div>
           )}
 
           {/* 5+ images: large left, top-right, and two small bottom-right; overlay +N on last */}
-          {images.length >= 5 && (
+          {media.length >= 5 && (
             <div className="grid grid-cols-2 gap-1">
               <div className="row-span-2 overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(0); setImageOpen(true) }}>
-                <img loading="lazy" src={images[0]} alt="image-1" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
+                <img loading="lazy" src={media[0].url} alt="image-1" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
               </div>
               <div className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(1); setImageOpen(true) }}>
-                <img loading="lazy" src={images[1]} alt="image-2" className="w-full h-48 object-cover block hover:scale-105 transition-transform duration-200" />
+                <img loading="lazy" src={media[1].url} alt="image-2" className="w-full h-48 object-cover block hover:scale-105 transition-transform duration-200" />
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <div className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(2); setImageOpen(true) }}>
-                  <img loading="lazy" src={images[2]} alt="image-3" className="w-full h-24 object-cover block hover:scale-105 transition-transform duration-200" />
+                  <img loading="lazy" src={media[2].url} alt="image-3" className="w-full h-24 object-cover block hover:scale-105 transition-transform duration-200" />
                 </div>
                 <div className="overflow-hidden rounded-md relative" onClick={() => { setCurrentImageIndex(3); setImageOpen(true) }}>
-                  <img loading="lazy" src={images[3]} alt="image-4" className="w-full h-24 object-cover block hover:scale-105 transition-transform duration-200" />
-                  {images.length > 5 && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-lg font-semibold">+{images.length - 4}</div>
+                  <img loading="lazy" src={media[3].url} alt="image-4" className="w-full h-24 object-cover block hover:scale-105 transition-transform duration-200" />
+                  {media.length > 5 && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-lg font-semibold">+{media.length - 4}</div>
                   )}
                 </div>
               </div>
@@ -188,14 +199,31 @@ export default function PostCard({ post, onEdit }) {
           )}
         </div>
       )}
-      {images.length === 1 && (
+      {media.length > 1 && !allImages && (
+        <div className="p-1 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+          {media.map((item, i) => (
+            <div key={i} className="overflow-hidden rounded-md bg-black/5 cursor-pointer" onClick={() => { setCurrentImageIndex(i); setImageOpen(true) }}>
+              {item.type === 'video' ? (
+                <video src={item.url} className="w-full h-48 object-cover" muted playsInline preload="metadata" />
+              ) : (
+                <img loading="lazy" src={item.url} alt={post.caption || `media-${i+1}`} className="w-full h-48 object-cover" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {media.length === 1 && (
         <div className="border-b p-1 flex justify-center">
           <div className="w-full max-w-3xl overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(0); setImageOpen(true) }}>
-            <img loading="lazy" src={images[0]} alt={post.caption || `image-1`} className="w-full h-auto max-h-[60vh] object-contain block mx-auto" />
+            {media[0]?.type === 'video' ? (
+              <video controls src={media[0].url} className="w-full h-auto max-h-[60vh] object-contain block mx-auto" />
+            ) : (
+              <img loading="lazy" src={media[0]?.url} alt={post.caption || `media-1`} className="w-full h-auto max-h-[60vh] object-contain block mx-auto" />
+            )}
           </div>
         </div>
       )}
-      {images.length === 0 && null}
+      {media.length === 0 && null}
 
       <div className="p-4 sm:p-5">
         {/* Author Row */}
@@ -281,7 +309,7 @@ export default function PostCard({ post, onEdit }) {
       </div>
 
       {/* Lightbox / Gallery Modal */}
-      <Modal open={imageOpen} onCancel={() => setImageOpen(false)} footer={null} centered width={900} bodyStyle={{ padding: 0 }} closable={false}>
+      <Modal open={imageOpen} onCancel={() => setImageOpen(false)} footer={null} centered width={900} styles={{ padding: 0 }} closable={false}>
         <div className="relative bg-black/90 p-4 rounded-lg flex flex-col items-center">
           <button aria-label="Close" onClick={() => setImageOpen(false)} className="absolute top-3 right-3 z-50 bg-white/20 hover:bg-white/30 text-white rounded-full w-9 h-9 flex items-center justify-center">
             <CloseOutlined style={{ fontSize: 14 }} />
@@ -291,21 +319,29 @@ export default function PostCard({ post, onEdit }) {
             <div className="text-sm text-neutral-200">{post.title || ''}</div>
           </div>
           <div className="w-full flex justify-center relative">
-            <button aria-label="Previous image" onClick={() => setCurrentImageIndex((i) => Math.max(0, i - 1))} disabled={currentImageIndex === 0} className="absolute left-2 top-1/2 -translate-y-1/2 z-40 bg-black/40 hover:bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center">
+            <button aria-label="Previous media" onClick={() => setCurrentImageIndex((i) => Math.max(0, i - 1))} disabled={currentImageIndex === 0} className="absolute left-2 top-1/2 -translate-y-1/2 z-40 bg-black/40 hover:bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center">
               <LeftOutlined />
             </button>
-            <img loading="lazy" src={images[currentImageIndex]} alt={post.caption || `image-${currentImageIndex+1}`} className="max-h-[70vh] max-w-[100%] object-contain rounded-md" />
-            <button aria-label="Next image" onClick={() => setCurrentImageIndex((i) => Math.min(images.length - 1, i + 1))} disabled={currentImageIndex === images.length - 1} className="absolute right-2 top-1/2 -translate-y-1/2 z-40 bg-black/40 hover:bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center">
+            {media[currentImageIndex]?.type === 'video' ? (
+              <video controls src={media[currentImageIndex]?.url} className="max-h-[70vh] max-w-[100%] object-contain rounded-md" />
+            ) : (
+              <img loading="lazy" src={media[currentImageIndex]?.url} alt={post.caption || `media-${currentImageIndex+1}`} className="max-h-[70vh] max-w-[100%] object-contain rounded-md" />
+            )}
+            <button aria-label="Next media" onClick={() => setCurrentImageIndex((i) => Math.min(media.length - 1, i + 1))} disabled={currentImageIndex === media.length - 1} className="absolute right-2 top-1/2 -translate-y-1/2 z-40 bg-black/40 hover:bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center">
               <RightOutlined />
             </button>
           </div>
           {post.caption && (
             <div className="mt-3 text-sm text-neutral-200 max-w-[90%] text-center">{post.caption}</div>
           )}
-          {images.length > 1 && (
+          {media.length > 1 && (
             <div className="mt-3 flex gap-2 overflow-x-auto w-full py-2">
-              {images.map((s, i) => (
-                <img loading="lazy" key={i} src={s} alt={`thumb-${i}`} onClick={() => setCurrentImageIndex(i)} className={`w-16 h-12 object-cover rounded cursor-pointer ${i === currentImageIndex ? 'ring-2 ring-white' : ''}`} />
+              {media.map((item, i) => (
+                item.type === 'video' ? (
+                  <video loading="lazy" key={i} src={item.url} onClick={() => setCurrentImageIndex(i)} className={`w-16 h-12 object-cover rounded cursor-pointer ${i === currentImageIndex ? 'ring-2 ring-white' : ''}`} muted playsInline preload="metadata" />
+                ) : (
+                  <img loading="lazy" key={i} src={item.url} alt={`thumb-${i}`} onClick={() => setCurrentImageIndex(i)} className={`w-16 h-12 object-cover rounded cursor-pointer ${i === currentImageIndex ? 'ring-2 ring-white' : ''}`} />
+                )
               ))}
             </div>
           )}

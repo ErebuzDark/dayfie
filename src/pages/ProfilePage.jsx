@@ -201,11 +201,15 @@ export default function ProfilePage() {
             {posts.map((p) => (
               <div key={p.id} className="p-4 border rounded-lg flex gap-4 items-start">
                 {(() => {
-                  const firstImage = Array.isArray(p.imageUrls) && p.imageUrls.length ? p.imageUrls[0] : (p.imageUrl || null)
-                  return firstImage ? (
-                    <img loading="lazy" src={firstImage} alt={p.caption || p.title || 'Post image'} className="w-28 h-20 object-cover rounded-md flex-shrink-0" />
+                  const firstMedia = Array.isArray(p.mediaItems) && p.mediaItems.length ? p.mediaItems[0] : (Array.isArray(p.imageUrls) && p.imageUrls.length ? { url: p.imageUrls[0], type: 'image' } : (p.imageUrl ? { url: p.imageUrl, type: 'image' } : null))
+                  return firstMedia ? (
+                    firstMedia.type === 'video' ? (
+                      <video loading="lazy" src={firstMedia.url} muted loop className="w-28 h-20 object-cover rounded-md flex-shrink-0" />
+                    ) : (
+                      <img loading="lazy" src={firstMedia.url} alt={p.caption || p.title || 'Post image'} className="w-28 h-20 object-cover rounded-md flex-shrink-0" />
+                    )
                   ) : (
-                    <div className="w-28 h-20 bg-neutral-50 rounded-md flex items-center justify-center text-neutral-400">No image</div>
+                    <div className="w-28 h-20 bg-neutral-50 rounded-md flex items-center justify-center text-neutral-400">No media</div>
                   )
                 })()}
                 <div className="flex-1">
