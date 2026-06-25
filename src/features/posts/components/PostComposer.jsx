@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Modal, Upload, Progress, message, Input } from 'antd'
 import {
   CameraOutlined,
@@ -60,8 +60,38 @@ export default function PostComposer({ open, onClose, editPost }) {
     if (!isLt8M) { message.error('Image must be smaller than 8MB'); return Upload.LIST_IGNORE }
     if (images.length >= 10) { message.error('Maximum 10 images per post'); return Upload.LIST_IGNORE }
     const preview = URL.createObjectURL(file)
-    setImages((prev) => [...prev, { file, preview }])
+    setImages((prev) => {
+      if (prev.length >= 10) return prev
+      return [...prev, { file, preview }]
+    })
     return false // prevent auto-upload
+  }
+
+  function addFiles(fileList) {
+    const arr = Array.from(fileList || [])
+    if (!arr.length) return
+    setImages((prev) => {
+      const copy = prev.slice()
+      for (const file of arr) {
+        if (copy.length >= 10) {
+          message.error('Maximum 10 images per post')
+          break
+        }
+        const isImage = file.type && file.type.startsWith('image/')
+        const isLt8M = file.size / 1024 / 1024 < 8
+        if (!isImage) { message.error('Only image files are allowed'); continue }
+        if (!isLt8M) { message.error('Image must be smaller than 8MB'); continue }
+        const preview = URL.createObjectURL(file)
+        copy.push({ file, preview })
+      }
+      return copy
+    })
+  }
+
+  const fileInputRef = useRef(null)
+  function handleFilesFromInput(e) {
+    addFiles(e.target.files)
+    e.target.value = null
   }
 
   function removeImage(index) {
@@ -246,24 +276,37 @@ export default function PostComposer({ open, onClose, editPost }) {
                   </div>
                 ))}
               </div>
+
               {images.length < 10 && (
-                <Upload.Dragger multiple accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
-                  <div className="p-3 text-center">
-                    <PlusOutlined style={{ fontSize: 20, color: 'var(--color-neutral-600)', marginBottom: 6 }} />
-                    <p className="m-0 text-sm text-neutral-600">Add more images — you can select multiple (max 10)</p>
+                <div>
+                  <Upload.Dragger multiple accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
+                    <div className="p-3 text-center">
+                      <PlusOutlined style={{ fontSize: 20, color: 'var(--color-neutral-600)', marginBottom: 6 }} />
+                      <p className="m-0 text-sm text-neutral-600">Add more images — you can select multiple (max 10)</p>
+                    </div>
+                  </Upload.Dragger>
+                  <div className="mt-2 text-center">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm text-neutral-600 underline">Use camera / pick from device</button>
                   </div>
-                </Upload.Dragger>
+                </div>
               )}
             </div>
           ) : (
-            <Upload.Dragger multiple accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
-              <div className="p-4 text-center">
-                <CameraOutlined style={{ fontSize: 28, color: 'var(--color-neutral-600)', marginBottom: 8 }} />
-                <p className="m-0 text-sm text-neutral-600 font-medium">Click or drag photos here (you can select multiple)</p>
-                <p className="mt-1 text-xs text-neutral-500">PNG, JPG, WEBP · Max 8MB per image · Up to 10 images</p>
+            <div>
+              <Upload.Dragger multiple accept="image/*" beforeUpload={handleImageSelect} showUploadList={false} className="rounded-xl border-dashed border-[1.5px] border-neutral-300 bg-white">
+                <div className="p-4 text-center">
+                  <CameraOutlined style={{ fontSize: 28, color: 'var(--color-neutral-600)', marginBottom: 8 }} />
+                  <p className="m-0 text-sm text-neutral-600 font-medium">Click or drag photos here (you can select multiple)</p>
+                  <p className="mt-1 text-xs text-neutral-500">PNG, JPG, WEBP · Max 8MB per image · Up to 10 images</p>
+                </div>
+              </Upload.Dragger>
+              <div className="mt-2 text-center">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm text-neutral-600 underline">Open camera / pick files</button>
               </div>
-            </Upload.Dragger>
+            </div>
           )}
+          {/* hidden file input used for camera or manual file pick */}
+          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" multiple onChange={handleFilesFromInput} className="hidden" />
         </div>
 
         {/* Tags */}
