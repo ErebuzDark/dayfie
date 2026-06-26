@@ -7,10 +7,12 @@ import {
   MoreOutlined,
   EditOutlined,
   DeleteOutlined,
-  ClockCircleOutlined,
+  ShareAltOutlined,
   CloseOutlined,
   LeftOutlined,
   RightOutlined,
+  LinkOutlined,
+  MessageOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/store/AuthContext'
 import { deletePost } from '@/services/postsService'
@@ -19,76 +21,290 @@ import ReactionBar from '@/features/reactions/components/ReactionBar'
 import CommentComposer from '@/features/comments/components/CommentComposer'
 import CommentList from '@/features/comments/components/CommentList'
 
+// ─── Media Grid ──────────────────────────────────────────────────────────────
+
+function MediaGrid({ media, onOpen }) {
+  if (media.length === 0) return null
+
+  const imgClass = 'w-full h-full object-cover block transition-transform duration-300 hover:scale-[1.03]'
+
+  if (media.length === 1) {
+    const item = media[0]
+    return (
+      <div
+        className="w-full overflow-hidden cursor-pointer"
+        style={{ maxHeight: '520px' }}
+        onClick={() => onOpen(0)}
+      >
+        {item.type === 'video' ? (
+          <video
+            controls
+            src={item.url}
+            className="w-full h-auto max-h-[520px] object-contain bg-black"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <img
+            loading="lazy"
+            src={item.url}
+            alt="post media"
+            className="w-full object-cover"
+            style={{ maxHeight: '520px' }}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (media.length === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-0.5 w-full" style={{ height: '300px' }}>
+        {media.map((item, i) => (
+          <div key={i} className="overflow-hidden cursor-pointer bg-neutral-100" onClick={() => onOpen(i)}>
+            {item.type === 'video'
+              ? <video src={item.url} className={imgClass} muted playsInline preload="metadata" />
+              : <img loading="lazy" src={item.url} alt={`media-${i + 1}`} className={imgClass} />}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (media.length === 3) {
+    return (
+      <div className="grid gap-0.5 w-full" style={{ gridTemplateColumns: '2fr 1fr', height: '300px' }}>
+        <div className="overflow-hidden cursor-pointer row-span-2 bg-neutral-100" onClick={() => onOpen(0)}>
+          <img loading="lazy" src={media[0].url} alt="media-1" className={imgClass} />
+        </div>
+        {[1, 2].map((i) => (
+          <div key={i} className="overflow-hidden cursor-pointer bg-neutral-100" onClick={() => onOpen(i)}>
+            <img loading="lazy" src={media[i].url} alt={`media-${i + 1}`} className={imgClass} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (media.length === 4) {
+    return (
+      <div className="grid grid-cols-2 gap-0.5 w-full" style={{ height: '300px' }}>
+        {media.map((item, i) => (
+          <div key={i} className="overflow-hidden cursor-pointer bg-neutral-100" onClick={() => onOpen(i)}>
+            <img loading="lazy" src={item.url} alt={`media-${i + 1}`} className={imgClass} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // 5+
+  return (
+    <div className="grid gap-0.5 w-full" style={{ gridTemplateColumns: '2fr 1fr', height: '320px' }}>
+      <div className="overflow-hidden cursor-pointer row-span-2 bg-neutral-100" onClick={() => onOpen(0)}>
+        <img loading="lazy" src={media[0].url} alt="media-1" className={imgClass} />
+      </div>
+      <div className="overflow-hidden cursor-pointer bg-neutral-100" onClick={() => onOpen(1)}>
+        <img loading="lazy" src={media[1].url} alt="media-2" className={imgClass} />
+      </div>
+      <div className="relative overflow-hidden cursor-pointer bg-neutral-100" onClick={() => onOpen(2)}>
+        <img loading="lazy" src={media[2].url} alt="media-3" className={imgClass} />
+        {media.length > 3 && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="text-white text-2xl font-semibold tracking-tight">+{media.length - 3}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Lightbox ────────────────────────────────────────────────────────────────
+
+function Lightbox({ open, media, index, onClose, onNav, caption }) {
+  if (!open || media.length === 0) return null
+  const current = media[index]
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      centered
+      width="min(92vw, 1000px)"
+      styles={{ content: { padding: 0, background: '#0d0d0d', borderRadius: 12, overflow: 'hidden' } }}
+      closable={false}
+    >
+      <div className="relative flex flex-col" style={{ minHeight: '60vh', maxHeight: '92vh' }}>
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <span className="text-white/50 text-xs tabular-nums">{index + 1} / {media.length}</span>
+          <button
+            aria-label="Close"
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <CloseOutlined style={{ fontSize: 13 }} />
+          </button>
+        </div>
+
+        {/* Main media */}
+        <div className="flex-1 flex items-center justify-center relative overflow-hidden" style={{ minHeight: '50vh' }}>
+          {index > 0 && (
+            <button
+              aria-label="Previous"
+              onClick={() => onNav(index - 1)}
+              className="absolute left-3 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <LeftOutlined style={{ fontSize: 12 }} />
+            </button>
+          )}
+
+          {current?.type === 'video' ? (
+            <video controls src={current.url} className="max-h-[65vh] max-w-full object-contain" />
+          ) : (
+            <img
+              loading="lazy"
+              src={current?.url}
+              alt={`media-${index + 1}`}
+              className="max-h-[65vh] max-w-full object-contain"
+            />
+          )}
+
+          {index < media.length - 1 && (
+            <button
+              aria-label="Next"
+              onClick={() => onNav(index + 1)}
+              className="absolute right-3 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <RightOutlined style={{ fontSize: 12 }} />
+            </button>
+          )}
+        </div>
+
+        {/* Caption */}
+        {caption && (
+          <div className="px-5 py-3 text-sm text-white/60 text-center leading-relaxed border-t border-white/10 max-h-20 overflow-y-auto">
+            {caption}
+          </div>
+        )}
+
+        {/* Thumbnail strip */}
+        {media.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto px-4 py-3 border-t border-white/10 scrollbar-none">
+            {media.map((item, i) => (
+              <button
+                key={i}
+                onClick={() => onNav(i)}
+                className={`flex-shrink-0 w-14 h-10 rounded overflow-hidden transition-all ${
+                  i === index ? 'ring-2 ring-amber-400 opacity-100' : 'opacity-50 hover:opacity-80'
+                }`}
+              >
+                {item.type === 'video'
+                  ? <video src={item.url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                  : <img loading="lazy" src={item.url} alt={`thumb-${i}`} className="w-full h-full object-cover" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
+// ─── PostCard ─────────────────────────────────────────────────────────────────
+
 export default function PostCard({ post, onEdit }) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [imageOpen, setImageOpen] = useState(false)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
   const [deleting, setDeleting] = useState(false)
   const [commentCount, setCommentCount] = useState(0)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [shareLinkCopied, setShareLinkCopied] = useState(false)
+  const [authorProfile, setAuthorProfile] = useState(null)
 
   const isOwner = user?.uid === post.authorId
-  const [authorProfile, setAuthorProfile] = useState(null)
-  // prepare media list (support new mediaItems and legacy image-only fields)
-  const rawMedia = Array.isArray(post.mediaItems) && post.mediaItems.length > 0
-    ? post.mediaItems
-    : (Array.isArray(post.imageUrls) && post.imageUrls.length > 0
-      ? post.imageUrls.map((u, i) => ({ url: u, type: 'image', path: Array.isArray(post.imagePaths) ? post.imagePaths[i] || null : (post.imagePath || null) }))
-      : (post.imageUrl ? [{ url: post.imageUrl, type: 'image', path: post.imagePath || null }] : []))
+
+  // ── Normalise media ──────────────────────────────────────────────────────
+  const rawMedia =
+    Array.isArray(post.mediaItems) && post.mediaItems.length > 0
+      ? post.mediaItems
+      : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
+      ? post.imageUrls.map((u, i) => ({
+          url: u,
+          type: 'image',
+          path: Array.isArray(post.imagePaths) ? post.imagePaths[i] ?? null : post.imagePath ?? null,
+        }))
+      : post.imageUrl
+      ? [{ url: post.imageUrl, type: 'image', path: post.imagePath ?? null }]
+      : []
 
   const media = []
   const _seen = new Set()
   for (const item of rawMedia) {
     if (!item) continue
-    const url = typeof item === 'string' ? item : (item.url || '')
+    const url = typeof item === 'string' ? item : item.url ?? ''
     const type = typeof item === 'object' && item.type ? item.type : 'image'
-    const path = typeof item === 'object' ? item.path || null : null
-    if (!url) continue
-    if (_seen.has(url)) continue
+    const path = typeof item === 'object' ? item.path ?? null : null
+    if (!url || _seen.has(url)) continue
     _seen.add(url)
     media.push({ url, type, path })
   }
 
-  // debug: log raw vs normalized media to help track duplication issues
-  useEffect(() => {
-    try {
-      console.debug('[PostCard] debug', { postId: post?.id, rawMedia, media, post })
-    } catch (e) {
-      /* ignore */
+  const authorName = authorProfile?.displayName || post.authorName || 'Anonymous'
+  const photoURL = authorProfile?.photoURL || post.authorPhotoURL || null
+  const commentsAllowed = post.commentEnabled !== false
+  const shareEnabled = post.shareEnabled !== false
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/posts/${post.id}` : `/posts/${post.id}`
+  const totalReactions = Object.values(post.reactions || {}).reduce((a, b) => a + (b || 0), 0)
+
+  // ── Link rendering ────────────────────────────────────────────────────────
+  function renderTextWithLinks(text) {
+    if (!text) return null
+    const urlRegex = /(https?:\/\/[^\s<>"'()]+|(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(?:\/[^\s<>"'()]*)?)/gi
+    const parts = []
+    let lastIndex = 0
+    let match
+    while ((match = urlRegex.exec(text)) !== null) {
+      const url = match[0]
+      const href = /^https?:\/\//i.test(url) ? url : `http://${url}`
+      if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+      parts.push(
+        <a key={`link-${match.index}`} href={href} target="_blank" rel="noreferrer noopener"
+          className="text-amber-700 hover:text-amber-900 underline underline-offset-2 decoration-amber-300">
+          {url}
+        </a>
+      )
+      lastIndex = match.index + url.length
     }
-  }, [post?.id, rawMedia?.length, media.length])
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex))
+    return parts.length > 0 ? parts : text
+  }
 
-  const authorName = (authorProfile?.displayName) || post.authorName || 'Anonymous'
-  const photoURL = (authorProfile?.photoURL) || post.authorPhotoURL || null
+  // ── Effects ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (shareModalOpen) setShareLinkCopied(false)
+  }, [shareModalOpen])
 
   useEffect(() => {
-    if (!post?.authorId) return
-    if (user?.uid === post.authorId) {
-      setAuthorProfile(null)
-      return
-    }
-
+    if (!post?.authorId || user?.uid === post.authorId) return setAuthorProfile(null)
     let unsub = null
     let canceled = false
-    import('@/lib/profileCache').then((mod) => {
-      if (canceled) return
-      unsub = mod.subscribeToProfile(post.authorId, (p) => setAuthorProfile(p))
-    }).catch((err) => console.warn('failed loading profileCache', err))
-    return () => { canceled = true; if (unsub) unsub() }
+    import('@/lib/profileCache')
+      .then((mod) => { if (!canceled) unsub = mod.subscribeToProfile(post.authorId, setAuthorProfile) })
+      .catch((err) => console.warn('profileCache error', err))
+    return () => { canceled = true; unsub?.() }
   }, [post.authorId, user])
 
-  // subscribe to live comment count for this post
   useEffect(() => {
     if (!post?.id) return
-    const commentsCol = collection(doc(db, 'posts', post.id), 'comments')
-    const unsub = onSnapshot(commentsCol, (snap) => {
-      setCommentCount(snap.size)
-    }, (err) => {
-      console.warn('comments snapshot error', err)
-    })
+    const col = collection(doc(db, 'posts', post.id), 'comments')
+    const unsub = onSnapshot(col, (snap) => setCommentCount(snap.size), (err) => console.warn(err))
     return () => unsub()
   }, [post?.id])
 
+  // ── Delete ────────────────────────────────────────────────────────────────
   async function handleDelete() {
     Modal.confirm({
       title: 'Delete this post?',
@@ -101,8 +317,12 @@ export default function PostCard({ post, onEdit }) {
         setDeleting(true)
         try {
           const mediaPaths = Array.isArray(post.mediaItems)
-            ? post.mediaItems.map((item) => item.path).filter(Boolean)
-            : (Array.isArray(post.imagePaths) ? post.imagePaths : (post.imagePath ? [post.imagePath] : []))
+            ? post.mediaItems.map((i) => i.path).filter(Boolean)
+            : Array.isArray(post.imagePaths)
+            ? post.imagePaths
+            : post.imagePath
+            ? [post.imagePath]
+            : []
           await deletePost(post.id, mediaPaths)
           message.success('Post deleted')
         } catch {
@@ -115,238 +335,204 @@ export default function PostCard({ post, onEdit }) {
   }
 
   const menuItems = [
-    {
-      key: 'edit',
-      icon: <EditOutlined />,
-      label: 'Edit Post',
-      onClick: () => onEdit?.(post),
-    },
+    { key: 'edit', icon: <EditOutlined />, label: 'Edit post', onClick: () => onEdit?.(post) },
     { type: 'divider' },
-    {
-      key: 'delete',
-      icon: <DeleteOutlined />,
-      label: 'Delete Post',
-      danger: true,
-      onClick: handleDelete,
-    },
+    { key: 'delete', icon: <DeleteOutlined />, label: 'Delete post', danger: true, disabled: deleting, onClick: handleDelete },
   ]
 
-  const allImages = media.every((item) => item.type === 'image')
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <article className="post-card animate-fade-in-up mb-5 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-neutral-100">
-      {/* Post media */}
-      {media.length > 1 && allImages && (
-        <div className="p-1">
-          {/* 2 images: side-by-side */}
-          {media.length === 2 && (
-            <div className="grid grid-cols-2 gap-1">
-              {media.map((item, i) => (
-                <div key={i} className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(i); setImageOpen(true) }}>
-                  <img loading="lazy" src={item.url} alt={post.caption || `image-${i+1}`} className="w-full h-48 object-cover block hover:scale-105 transition-transform duration-200" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* 3 images: large left + two stacked right */}
-          {media.length === 3 && (
-            <div className="grid grid-cols-2 grid-rows-2 gap-1">
-              <div className="row-span-2 overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(0); setImageOpen(true) }}>
-                <img loading="lazy" src={media[0].url} alt="image-1" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
-              </div>
-              <div className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(1); setImageOpen(true) }}>
-                <img loading="lazy" src={media[1].url} alt="image-2" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
-              </div>
-              <div className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(2); setImageOpen(true) }}>
-                <img loading="lazy" src={media[2].url} alt="image-3" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
-              </div>
-            </div>
-          )}
-
-          {/* 4 images: 2x2 grid */}
-          {media.length === 4 && (
-            <div className="grid grid-cols-2 gap-1">
-              {media.map((item, i) => (
-                <div key={i} className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(i); setImageOpen(true) }}>
-                  <img loading="lazy" src={item.url} alt={`image-${i+1}`} className="w-full h-40 object-cover block hover:scale-105 transition-transform duration-200" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* 5+ images: large left, top-right, and two small bottom-right; overlay +N on last */}
-          {media.length >= 5 && (
-            <div className="grid grid-cols-2 gap-1">
-              <div className="row-span-2 overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(0); setImageOpen(true) }}>
-                <img loading="lazy" src={media[0].url} alt="image-1" className="w-full h-full object-cover block hover:scale-105 transition-transform duration-200" />
-              </div>
-              <div className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(1); setImageOpen(true) }}>
-                <img loading="lazy" src={media[1].url} alt="image-2" className="w-full h-48 object-cover block hover:scale-105 transition-transform duration-200" />
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <div className="overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(2); setImageOpen(true) }}>
-                  <img loading="lazy" src={media[2].url} alt="image-3" className="w-full h-24 object-cover block hover:scale-105 transition-transform duration-200" />
-                </div>
-                <div className="overflow-hidden rounded-md relative" onClick={() => { setCurrentImageIndex(3); setImageOpen(true) }}>
-                  <img loading="lazy" src={media[3].url} alt="image-4" className="w-full h-24 object-cover block hover:scale-105 transition-transform duration-200" />
-                  {media.length > 5 && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-lg font-semibold">+{media.length - 4}</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      {media.length > 1 && !allImages && (
-        <div className="p-1 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-          {media.map((item, i) => (
-            <div key={i} className="overflow-hidden rounded-md bg-black/5 cursor-pointer" onClick={() => { setCurrentImageIndex(i); setImageOpen(true) }}>
-              {item.type === 'video' ? (
-                <video src={item.url} className="w-full h-48 object-cover" muted playsInline preload="metadata" />
-              ) : (
-                <img loading="lazy" src={item.url} alt={post.caption || `media-${i+1}`} className="w-full h-48 object-cover" />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      {media.length === 1 && (
-        <div className="border-b p-1 flex justify-center">
-          <div className="w-full max-w-3xl overflow-hidden rounded-md" onClick={() => { setCurrentImageIndex(0); setImageOpen(true) }}>
-            {media[0]?.type === 'video' ? (
-              <video controls src={media[0].url} className="w-full h-auto max-h-[60vh] object-contain block mx-auto" />
-            ) : (
-              <img loading="lazy" src={media[0]?.url} alt={post.caption || `media-1`} className="w-full h-auto max-h-[60vh] object-contain block mx-auto" />
-            )}
+    <>
+      <article
+        className="post-card bg-white rounded-xl overflow-hidden mb-4 transition-shadow duration-200"
+        style={{
+          boxShadow: '0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05)',
+        }}
+      >
+        {/* ── Media (bleed to edges, no padding) ── */}
+        {media.length > 0 && (
+          <div className="overflow-hidden">
+            <MediaGrid media={media} onOpen={(i) => { setLightboxIndex(i); setLightboxOpen(true) }} />
           </div>
-        </div>
-      )}
-      {media.length === 0 && null}
+        )}
 
-      <div className="p-4 sm:p-5">
-        {/* Author Row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <button onClick={() => navigate(`/profile/${post.authorId}`)} className="flex items-center gap-3 p-0 border-0 bg-transparent cursor-pointer">
+        {/* ── Content body ── */}
+        <div className="px-5 pt-4 pb-3">
+
+          {/* Author row */}
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => navigate(`/profile/${post.authorId}`)}
+              className="flex items-center gap-2.5 group border-0 bg-transparent p-0 cursor-pointer"
+            >
               {photoURL ? (
-                <img src={photoURL} alt={authorName} className="w-9 h-9 rounded-full object-cover border-2 border-neutral-200 flex-shrink-0" />
+                <img
+                  src={photoURL}
+                  alt={authorName}
+                  className="w-8 h-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-amber-300 transition-all flex-shrink-0"
+                />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-neutral-700 border-2 border-neutral-200 flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xs font-bold text-amber-800 group-hover:bg-amber-100 transition-colors flex-shrink-0">
                   {getInitials(authorName)}
                 </div>
               )}
-
               <div className="text-left">
-                <p className="m-0 font-semibold text-sm text-neutral-800 leading-snug">{authorName}</p>
-                <p className="m-0 text-xs text-neutral-500 flex items-center gap-1">
-                  <ClockCircleOutlined style={{ fontSize: 10 }} />
+                <p className="m-0 text-sm font-semibold text-neutral-800 leading-snug group-hover:text-amber-800 transition-colors">
+                  {authorName}
+                </p>
+                <p className="m-0 text-[11px] text-neutral-400 leading-none mt-0.5 flex items-center gap-1">
                   {formatRelativeTime(post.createdAt)}
                   {post.updatedAt && post.updatedAt?.seconds !== post.createdAt?.seconds && (
-                    <span className="text-neutral-600"> · edited</span>
+                    <span className="text-neutral-300">· edited</span>
                   )}
                 </p>
               </div>
             </button>
-          </div>
 
-          {/* Menu (owner only) */}
-          {isOwner && (
-            <Dropdown
-              menu={{ items: menuItems }}
-              placement="bottomRight"
-              trigger={['click']}
-            >
-              <button className="p-2 rounded-full text-neutral-600 hover:bg-neutral-100">
-                <MoreOutlined style={{ fontSize: 18 }} />
-              </button>
-            </Dropdown>
-          )}
-        </div>
-
-        {/* Title */}
-        {post.title && (
-          <h2 className="mb-2 font-semibold text-lg text-neutral-800 leading-tight">{post.title}</h2>
-        )}
-
-        {/* Caption / body */}
-        {post.caption && (
-          <p className="mb-4 text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">{post.caption}</p>
-        )}
-
-        {/* Tags */}
-        {post.tags?.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {post.tags.map((tag) => (
-              <span key={tag} className="text-xs bg-neutral-100 px-2 py-0.5 rounded">#{tag}</span>
-            ))}
-          </div>
-        )}
-
-        {/* Divider */}
-        <div className="border-t my-3" />
-
-        {/* Reactions */}
-        <ReactionBar post={post} />
-
-        {/* Action row: reactions total + comments count */}
-        <div className="mt-3 flex items-center justify-between text-sm text-neutral-500">
-          <div className="flex items-center gap-3">
-            <span>{Object.values(post.reactions || {}).reduce((a,b) => a + (b||0), 0)} reactions</span>
-            <span>·</span>
-            <span>{commentCount} comments</span>
-          </div>
-          <div />
-        </div>
-
-        {/* Comments */}
-        <div className="mt-4">
-          <CommentComposer postId={post.id} />
-          <CommentList postId={post.id} />
-        </div>
-      </div>
-
-      {/* Lightbox / Gallery Modal */}
-      <Modal open={imageOpen} onCancel={() => setImageOpen(false)} footer={null} centered width={900} styles={{ padding: 0 }} closable={false}>
-        <div className="relative bg-black/90 p-4 rounded-lg flex flex-col items-center">
-          <button aria-label="Close" onClick={() => setImageOpen(false)} className="absolute top-3 right-3 z-50 bg-white/20 hover:bg-white/30 text-white rounded-full w-9 h-9 flex items-center justify-center">
-            <CloseOutlined style={{ fontSize: 14 }} />
-          </button>
-
-          <div className="w-full flex items-center justify-center mb-2">
-            <div className="text-sm text-neutral-200">{post.title || ''}</div>
-          </div>
-          <div className="w-full flex justify-center relative">
-            <button aria-label="Previous media" onClick={() => setCurrentImageIndex((i) => Math.max(0, i - 1))} disabled={currentImageIndex === 0} className="absolute left-2 top-1/2 -translate-y-1/2 z-40 bg-black/40 hover:bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center">
-              <LeftOutlined />
-            </button>
-            {media[currentImageIndex]?.type === 'video' ? (
-              <video controls src={media[currentImageIndex]?.url} className="max-h-[70vh] max-w-[100%] object-contain rounded-md" />
-            ) : (
-              <img loading="lazy" src={media[currentImageIndex]?.url} alt={post.caption || `media-${currentImageIndex+1}`} className="max-h-[70vh] max-w-[100%] object-contain rounded-md" />
+            {isOwner && (
+              <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
+                <button className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
+                  <MoreOutlined style={{ fontSize: 16 }} />
+                </button>
+              </Dropdown>
             )}
-            <button aria-label="Next media" onClick={() => setCurrentImageIndex((i) => Math.min(media.length - 1, i + 1))} disabled={currentImageIndex === media.length - 1} className="absolute right-2 top-1/2 -translate-y-1/2 z-40 bg-black/40 hover:bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center">
-              <RightOutlined />
-            </button>
           </div>
-          {post.caption && (
-            <div className="mt-3 text-sm text-neutral-200 max-w-[90%] text-center">{post.caption}</div>
+
+          {/* Title */}
+          {post.title && (
+            <h2 className="mb-1.5 font-bold text-[17px] text-neutral-900 leading-snug tracking-tight">
+              {post.title}
+            </h2>
           )}
-          {media.length > 1 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto w-full py-2">
-              {media.map((item, i) => (
-                item.type === 'video' ? (
-                  <video loading="lazy" key={i} src={item.url} onClick={() => setCurrentImageIndex(i)} className={`w-16 h-12 object-cover rounded cursor-pointer ${i === currentImageIndex ? 'ring-2 ring-white' : ''}`} muted playsInline preload="metadata" />
-                ) : (
-                  <img loading="lazy" key={i} src={item.url} alt={`thumb-${i}`} onClick={() => setCurrentImageIndex(i)} className={`w-16 h-12 object-cover rounded cursor-pointer ${i === currentImageIndex ? 'ring-2 ring-white' : ''}`} />
-                )
+
+          {/* Caption */}
+          {post.caption && (
+            <p className="mb-3 text-sm text-neutral-600 leading-relaxed whitespace-pre-wrap break-words">
+              {renderTextWithLinks(post.caption)}
+            </p>
+          )}
+
+          {/* Tags */}
+          {post.tags?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {post.tags.map((tag) => (
+                <span key={tag} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                  #{tag}
+                </span>
               ))}
             </div>
           )}
+
+          {/* Reactions */}
+          <ReactionBar post={post} />
+
+          {/* Stats + Actions row */}
+          <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center justify-between">
+            <div className="flex items-center gap-3 text-xs text-neutral-400">
+              {totalReactions > 0 && (
+                <span>{totalReactions} {totalReactions === 1 ? 'reaction' : 'reactions'}</span>
+              )}
+              {totalReactions > 0 && commentCount > 0 && (
+                <span className="text-neutral-200">·</span>
+              )}
+              {commentCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <MessageOutlined style={{ fontSize: 11 }} />
+                  {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+                </span>
+              )}
+            </div>
+
+            {shareEnabled && (
+              <button
+                type="button"
+                onClick={() => setShareModalOpen(true)}
+                className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-amber-700 transition-colors px-2 py-1 rounded-lg hover:bg-amber-50"
+              >
+                <ShareAltOutlined style={{ fontSize: 12 }} />
+                Share
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Comments section */}
+        {commentsAllowed ? (
+          <div className="px-5 pb-4 border-t border-neutral-50">
+            <div className="pt-3">
+              <CommentComposer postId={post.id} />
+              <CommentList postId={post.id} />
+            </div>
+          </div>
+        ) : (
+          <div className="mx-5 mb-4 mt-1 rounded-lg bg-neutral-50 border border-neutral-100 px-4 py-3 text-xs text-neutral-400">
+            Comments are turned off for this post.
+          </div>
+        )}
+      </article>
+
+      {/* Lightbox */}
+      <Lightbox
+        open={lightboxOpen}
+        media={media}
+        index={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+        onNav={setLightboxIndex}
+        caption={post.caption}
+      />
+
+      {/* Share modal */}
+      <Modal
+        open={shareModalOpen}
+        onCancel={() => setShareModalOpen(false)}
+        title={null}
+        centered
+        footer={null}
+        width={420}
+        styles={{ content: { borderRadius: 16, padding: 0, overflow: 'hidden' } }}
+      >
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center">
+              <LinkOutlined style={{ fontSize: 15, color: '#92400e' }} />
+            </div>
+            <div>
+              <p className="m-0 font-semibold text-sm text-neutral-800">Share this post</p>
+              <p className="m-0 text-xs text-neutral-400">Copy the link below</p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 flex items-center gap-2 mb-4">
+            <span className="flex-1 text-xs text-neutral-500 truncate">{shareUrl}</span>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => setShareModalOpen(false)}
+              className="px-3 py-1.5 text-sm text-neutral-500 hover:text-neutral-700 rounded-lg hover:bg-neutral-100 transition-colors"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try { await navigator.clipboard.writeText(shareUrl) } catch { /* silent */ }
+                setShareLinkCopied(true)
+                message.success('Link copied!')
+              }}
+              className="px-4 py-1.5 text-sm font-medium rounded-lg transition-colors"
+              style={{
+                background: shareLinkCopied ? '#d1fae5' : '#fffbeb',
+                color: shareLinkCopied ? '#065f46' : '#92400e',
+                border: `1px solid ${shareLinkCopied ? '#6ee7b7' : '#fde68a'}`,
+              }}
+            >
+              {shareLinkCopied ? '✓ Copied' : 'Copy link'}
+            </button>
+          </div>
         </div>
       </Modal>
-    </article>
+    </>
   )
 }

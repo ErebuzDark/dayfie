@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Modal, Upload, Progress, message, Input } from 'antd'
+import { Modal, Upload, Progress, message, Switch } from 'antd'
 import {
   CameraOutlined,
   CloseOutlined,
@@ -15,10 +15,14 @@ export default function PostComposer({ open, onClose, editPost }) {
   const [title, setTitle] = useState('')
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState('')
+  const [commentEnabled, setCommentEnabled] = useState(true)
+  const [shareEnabled, setShareEnabled] = useState(true)
   // media items: array of { file?, preview?, url?, path?, type:'image'|'video' }
   const [mediaItems, setMediaItems] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const fileInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
 
   const isEditing = !!editPost
 
@@ -28,7 +32,9 @@ export default function PostComposer({ open, onClose, editPost }) {
       setTitle(editPost.title || '')
       setCaption(editPost.caption || '')
       setTags(editPost.tags?.join(', ') || '')
-      // initialize images from editPost: support legacy single image or new imageUrls
+      setCommentEnabled(editPost.commentEnabled !== false)
+      setShareEnabled(editPost.shareEnabled !== false)
+      // initialize media from editPost: support legacy single image or new mediaItems
       let initial = []
       if (Array.isArray(editPost.mediaItems) && editPost.mediaItems.length) {
         initial = editPost.mediaItems.map((item) => ({
@@ -51,6 +57,8 @@ export default function PostComposer({ open, onClose, editPost }) {
     setTitle('')
     setCaption('')
     setTags('')
+    setCommentEnabled(true)
+    setShareEnabled(true)
     setMediaItems([])
     setUploadProgress(0)
   }
@@ -105,7 +113,6 @@ export default function PostComposer({ open, onClose, editPost }) {
     })
   }
 
-  const fileInputRef = useRef(null)
   function handleFilesFromInput(e) {
     addFiles(e.target.files)
     e.target.value = null
@@ -200,6 +207,8 @@ export default function PostComposer({ open, onClose, editPost }) {
         authorId: user.uid,
         authorName,
         authorPhotoURL,
+        commentEnabled,
+        shareEnabled,
       }
 
       if (isEditing) {
@@ -233,7 +242,7 @@ export default function PostComposer({ open, onClose, editPost }) {
       title={<span className="font-semibold text-base text-neutral-800">{isEditing ? 'Edit Post' : 'Share a Dayfie'}</span>}
       closable={!submitting}
       maskClosable={!submitting}
-      styles={{ padding: '1rem 1.5rem 1.5rem' }}
+      bodyStyle={{ padding: '1rem 1.5rem 1.5rem' }}
     >
       {/* Author hint */}
       <div className="flex items-center gap-3 mb-4">
@@ -313,19 +322,45 @@ export default function PostComposer({ open, onClose, editPost }) {
                   <p className="mt-1 text-xs text-neutral-500">Image max 8MB | Video max 100MB | Up to 10 items</p>
                 </div>
               </Upload.Dragger>
-              <div className="mt-2 text-center">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm text-neutral-600 underline">Open camera / pick files</button>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 py-2 px-3 text-sm text-neutral-600 hover:bg-neutral-50">
+                  <span className="text-lg">📁</span>
+                  From device
+                </button>
+                <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 py-2 px-3 text-sm text-neutral-600 hover:bg-neutral-50">
+                  <CameraOutlined />
+                  Open camera
+                </button>
               </div>
             </div>
           )}
-          {/* hidden file input used for camera or manual file pick */}
-          <input ref={fileInputRef} type="file" accept="image/*,video/*" capture="environment" multiple onChange={handleFilesFromInput} className="hidden" />
+          {/* hidden file inputs used for camera or manual file pick */}
+          <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFilesFromInput} className="hidden" />
+          <input ref={cameraInputRef} type="file" accept="image/*,video/*" capture="environment" multiple onChange={handleFilesFromInput} className="hidden" />
         </div>
 
         {/* Tags */}
         <div>
           <label className="block text-sm font-medium text-neutral-600 mb-1">Tags <span className="text-neutral-500">(optional, comma-separated)</span></label>
           <input className="input-field" placeholder="e.g. travel, food, selfie" value={tags} onChange={(e) => setTags(e.target.value)} />
+        </div>
+
+        {/* Comment toggle */}
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+          <div>
+            <p className="text-sm font-medium text-neutral-700">Allow comments</p>
+            <p className="text-xs text-neutral-500">Users can reply to this post when enabled.</p>
+          </div>
+          <Switch checked={commentEnabled} onChange={(checked) => setCommentEnabled(checked)} />
+        </div>
+
+        {/* Share toggle */}
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+          <div>
+            <p className="text-sm font-medium text-neutral-700">Allow sharing</p>
+            <p className="text-xs text-neutral-500">Share button will appear for this post when enabled.</p>
+          </div>
+          <Switch checked={shareEnabled} onChange={(checked) => setShareEnabled(checked)} />
         </div>
 
         {/* Upload progress */}
