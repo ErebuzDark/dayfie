@@ -495,8 +495,8 @@ export default function PostCard({ post, onEdit }) {
             </div>
           </div>
         ) : (
-          <div className="mx-5 mb-4 mt-1 rounded-lg bg-neutral-50 border border-neutral-100 px-4 py-3 text-xs text-neutral-400">
-            Comments are turned off for this post.
+          <div className="flex flex-row items-center gap-2 mx-5 mb-4 mt-1 rounded-lg bg-neutral-50 border border-neutral-100 px-4 py-3 text-xs text-neutral-400">
+            <MdOutlineCommentsDisabled className="size-6"/>Comments are turned off for this post.
           </div>
         )}
       </article>

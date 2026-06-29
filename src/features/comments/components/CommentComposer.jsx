@@ -3,6 +3,9 @@ import { Button, Input, message } from 'antd'
 import { useAuth } from '@/store/AuthContext'
 import { createComment } from '@/services/postsService'
 
+import { LuSendHorizontal } from "react-icons/lu";
+import { BsReply } from "react-icons/bs";
+
 export default function CommentComposer({ postId, parentId = null, onPosted, onCancel }) {
   const { user } = useAuth()
   const [text, setText] = useState('')
@@ -42,8 +45,9 @@ export default function CommentComposer({ postId, parentId = null, onPosted, onC
         disabled={!user}
         className="min-w-0 w-full p-2 rounded-md border border-neutral-200 focus:border-primary-500"
       />
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-row gap-2">
         <Button type="primary" onClick={handleSubmit} loading={sending} disabled={!user || !text.trim()} className="whitespace-nowrap">
+          {parentId ? <BsReply /> : <LuSendHorizontal />}
           {parentId ? 'Reply' : 'Comment'}
         </Button>
         {onCancel && (

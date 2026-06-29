@@ -106,7 +106,7 @@ export default function ReactionBar({ post, item, onToggle }) {
       <div className="relative">
         <button
           ref={btnRef}
-          className={`reaction-btn inline-flex items-center gap-2 px-3 py-1 rounded-full border ${myReaction ? 'font-semibold' : ''}`}
+          className={`reaction-btn inline-flex items-center gap-2 px-3 py-1 rounded-full shadow-sm border-slate-200 ${myReaction ? 'font-semibold' : ''}`}
           onClick={handleMainBtnClick}
           disabled={pending}
           style={{ color: myReaction ? myReactionInfo?.color : undefined, background: myReaction ? `${myReactionInfo?.color}15` : undefined }}
