@@ -71,18 +71,16 @@ export default function CommentCard({ comment, postId, replies = [], isReply = f
   return (
     <div className={`flex gap-3 ${isReply ? "py-1 ml-9" : "py-2"}`}>
       {authorPhoto ? (
-        <img src={authorPhoto} alt={displayName} className="w-9 h-9 rounded-full object-cover" />
+        <img src={authorPhoto} alt={displayName} className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-md" />
       ) : (
         <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-neutral-700">
           {getInitials(displayName)}
         </div>
       )}
       <div className="flex-1">
-        <div className="flex justify-between gap-2">
-          <div>
+        <div className="flex flex-col justify-between gap-0.5">
             <strong className="block text-sm">{displayName}</strong>
-            <small className="text-xs text-neutral-500">{formatRelativeTime(comment.createdAt)}</small>
-          </div>
+            <small className="text-[11px] text-neutral-500">{formatRelativeTime(comment.createdAt)}</small>
         </div>
         <p className="mt-1 text-sm whitespace-pre-wrap">{comment.text}</p>
 

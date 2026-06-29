@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Modal, message, Dropdown } from "antd";
+import { Modal, message, Dropdown, Drawer } from "antd";
 import {
   MoreOutlined,
   EditOutlined,
@@ -226,6 +226,7 @@ export default function PostCard({ post, onEdit }) {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [authorProfile, setAuthorProfile] = useState(null);
+  const [commentsDrawerOpen, setCommentsDrawerOpen] = useState(false);
 
   const isOwner = user?.uid === post.authorId;
 
@@ -398,10 +399,10 @@ export default function PostCard({ post, onEdit }) {
                 <img
                   src={photoURL}
                   alt={authorName}
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-amber-300 transition-all flex-shrink-0"
+                  className="w-8 h-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-amber-300 transition-all shrink-0 border border-slate-200 shadow-md"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xs font-bold text-amber-800 group-hover:bg-amber-100 transition-colors flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xs font-bold text-amber-800 group-hover:bg-amber-100 transition-colors shrink-0">
                   {getInitials(authorName)}
                 </div>
               )}
@@ -490,7 +491,7 @@ export default function PostCard({ post, onEdit }) {
         {commentsAllowed ? (
           <div className="px-5 pb-4 border-t border-neutral-50">
             <div className="pt-3">
-              <CommentList postId={post.id} />
+              <CommentList postId={post.id} maxTopComments={3} onSeeMore={() => setCommentsDrawerOpen(true)} />
               <CommentComposer postId={post.id} />
             </div>
           </div>
@@ -500,6 +501,27 @@ export default function PostCard({ post, onEdit }) {
           </div>
         )}
       </article>
+
+      {/* Comments drawer (bottom) */}
+      <Drawer
+        open={commentsDrawerOpen}
+        onClose={() => setCommentsDrawerOpen(false)}
+        placement="bottom"
+        height="60vh"
+        closeIcon={null}
+        bodyStyle={{ padding: 0 }}
+      >
+        <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
+          <h3 className="m-0 text-sm font-semibold">Comments</h3>
+          <button onClick={() => setCommentsDrawerOpen(false)} className="text-sm text-neutral-500 hover:text-neutral-700">Close</button>
+        </div>
+        <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(60vh - 64px)' }}>
+          <CommentList postId={post.id} />
+          <div className="mt-4">
+            <CommentComposer postId={post.id} />
+          </div>
+        </div>
+      </Drawer>
 
       {/* Lightbox */}
       <Lightbox

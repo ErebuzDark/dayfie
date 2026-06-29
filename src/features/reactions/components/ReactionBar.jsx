@@ -111,15 +111,15 @@ export default function ReactionBar({ post, item, onToggle }) {
           disabled={pending}
           style={{ color: myReaction ? myReactionInfo?.color : undefined, background: myReaction ? `${myReactionInfo?.color}15` : undefined }}
         >
-          <span className="text-base leading-none">{myReactionInfo ? myReactionInfo.emoji : '👍'}</span>
-          <span className="text-sm">{myReactionInfo ? myReactionInfo.label : 'React'}</span>
+          <span className="text-sm leading-none">{myReactionInfo ? myReactionInfo.emoji : '👍'}</span>
+          <span className="text-xs">{myReactionInfo ? myReactionInfo.label : 'React'}</span>
         </button>
 
         {/* Reaction picker popup */}
         {showPicker && (
           <div
             ref={pickerRef}
-            className="absolute bottom-[calc(100%+8px)] left-0 bg-white border rounded-full shadow-lg p-2 flex gap-1 z-50 animate-scale-in origin-bottom-left"
+            className="absolute bottom-[calc(100%+8px)] left-0 bg-white border border-slate-100 rounded-full shadow-lg p-2 flex gap-1 z-50 animate-scale-in origin-bottom-left"
           >
             {REACTIONS.map((r, i) => (
               <button
