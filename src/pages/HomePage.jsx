@@ -19,6 +19,7 @@ export default function HomePage({ onNewPost, onEditPost }) {
       setPosts(newPosts)
       setLoading(false)
     })
+    console.log("fectch")
     return unsub
   }, [])
 

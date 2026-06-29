@@ -104,12 +104,12 @@ export default function CommentCard({ comment, postId, replies = [], isReply = f
         )}
         <div className="flex gap-2 my-2 items-center">
           {!showReply && !isReply && (
-            <div className="flex flex-row gap-4 items-center">
-              <button onClick={() => setShowReply((v) => !v)} className="text-sm text-neutral-600 hover:underline">
+            <div className="flex flex-row items-center">
+              <button onClick={() => setShowReply((v) => !v)} className="text-sm text-neutral-600 hover:underline cursor-pointer rounded-full py-2 px-4 hover:bg-slate-100 duration-300">
                 {showReply ? "Cancel" : <div className="flex flex-row gap-1 items-center"><BsReply />Reply</div>}
               </button>
               {isOwner && (
-                <button onClick={handleDelete} className="text-sm text-red-500 hover:underline">
+                <button onClick={handleDelete} className="text-sm text-red-500 hover:underline cursor-pointer rounded-full py-2 px-4 hover:bg-slate-100 duration-300">
                   <div className="flex flex-row gap-1 items-center"><RiChatDeleteLine className="'text-red-500" />Delete comment</div>
                 </button>
               )}
