@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { doc, collection, onSnapshot } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import { Modal, message, Dropdown } from 'antd'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { doc, collection, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Modal, message, Dropdown } from "antd";
 import {
   MoreOutlined,
   EditOutlined,
@@ -13,30 +13,27 @@ import {
   RightOutlined,
   LinkOutlined,
   MessageOutlined,
-} from '@ant-design/icons'
-import { useAuth } from '@/store/AuthContext'
-import { deletePost } from '@/services/postsService'
-import { formatRelativeTime, getInitials } from '@/lib/utils'
-import ReactionBar from '@/features/reactions/components/ReactionBar'
-import CommentComposer from '@/features/comments/components/CommentComposer'
-import CommentList from '@/features/comments/components/CommentList'
+} from "@ant-design/icons";
+import { MdOutlineInsertComment, MdOutlineCommentsDisabled } from "react-icons/md";
+import { useAuth } from "@/store/AuthContext";
+import { deletePost } from "@/services/postsService";
+import { formatRelativeTime, getInitials } from "@/lib/utils";
+import ReactionBar from "@/features/reactions/components/ReactionBar";
+import CommentComposer from "@/features/comments/components/CommentComposer";
+import CommentList from "@/features/comments/components/CommentList";
 
 // ─── Media Grid ──────────────────────────────────────────────────────────────
 
 function MediaGrid({ media, onOpen }) {
-  if (media.length === 0) return null
+  if (media.length === 0) return null;
 
-  const imgClass = 'w-full h-full object-cover block transition-transform duration-300 hover:scale-[1.03]'
+  const imgClass = "w-full h-full object-cover block transition-transform duration-300 hover:scale-[1.03]";
 
   if (media.length === 1) {
-    const item = media[0]
+    const item = media[0];
     return (
-      <div
-        className="w-full overflow-hidden cursor-pointer"
-        style={{ maxHeight: '520px' }}
-        onClick={() => onOpen(0)}
-      >
-        {item.type === 'video' ? (
+      <div className="w-full overflow-hidden cursor-pointer" style={{ maxHeight: "520px" }} onClick={() => onOpen(0)}>
+        {item.type === "video" ? (
           <video
             controls
             src={item.url}
@@ -49,30 +46,32 @@ function MediaGrid({ media, onOpen }) {
             src={item.url}
             alt="post media"
             className="w-full object-cover"
-            style={{ maxHeight: '520px' }}
+            style={{ maxHeight: "520px" }}
           />
         )}
       </div>
-    )
+    );
   }
 
   if (media.length === 2) {
     return (
-      <div className="grid grid-cols-2 gap-0.5 w-full" style={{ height: '300px' }}>
+      <div className="grid grid-cols-2 gap-0.5 w-full" style={{ height: "300px" }}>
         {media.map((item, i) => (
           <div key={i} className="overflow-hidden cursor-pointer bg-neutral-100" onClick={() => onOpen(i)}>
-            {item.type === 'video'
-              ? <video src={item.url} className={imgClass} muted playsInline preload="metadata" />
-              : <img loading="lazy" src={item.url} alt={`media-${i + 1}`} className={imgClass} />}
+            {item.type === "video" ? (
+              <video src={item.url} className={imgClass} muted playsInline preload="metadata" />
+            ) : (
+              <img loading="lazy" src={item.url} alt={`media-${i + 1}`} className={imgClass} />
+            )}
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   if (media.length === 3) {
     return (
-      <div className="grid gap-0.5 w-full" style={{ gridTemplateColumns: '2fr 1fr', height: '300px' }}>
+      <div className="grid gap-0.5 w-full" style={{ gridTemplateColumns: "2fr 1fr", height: "300px" }}>
         <div className="overflow-hidden cursor-pointer row-span-2 bg-neutral-100" onClick={() => onOpen(0)}>
           <img loading="lazy" src={media[0].url} alt="media-1" className={imgClass} />
         </div>
@@ -82,24 +81,24 @@ function MediaGrid({ media, onOpen }) {
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   if (media.length === 4) {
     return (
-      <div className="grid grid-cols-2 gap-0.5 w-full" style={{ height: '300px' }}>
+      <div className="grid grid-cols-2 gap-0.5 w-full" style={{ height: "300px" }}>
         {media.map((item, i) => (
           <div key={i} className="overflow-hidden cursor-pointer bg-neutral-100" onClick={() => onOpen(i)}>
             <img loading="lazy" src={item.url} alt={`media-${i + 1}`} className={imgClass} />
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   // 5+
   return (
-    <div className="grid gap-0.5 w-full" style={{ gridTemplateColumns: '2fr 1fr', height: '320px' }}>
+    <div className="grid gap-0.5 w-full" style={{ gridTemplateColumns: "2fr 1fr", height: "320px" }}>
       <div className="overflow-hidden cursor-pointer row-span-2 bg-neutral-100" onClick={() => onOpen(0)}>
         <img loading="lazy" src={media[0].url} alt="media-1" className={imgClass} />
       </div>
@@ -115,14 +114,14 @@ function MediaGrid({ media, onOpen }) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Lightbox ────────────────────────────────────────────────────────────────
 
 function Lightbox({ open, media, index, onClose, onNav, caption }) {
-  if (!open || media.length === 0) return null
-  const current = media[index]
+  if (!open || media.length === 0) return null;
+  const current = media[index];
 
   return (
     <Modal
@@ -131,13 +130,15 @@ function Lightbox({ open, media, index, onClose, onNav, caption }) {
       footer={null}
       centered
       width="min(92vw, 1000px)"
-      styles={{ content: { padding: 0, background: '#0d0d0d', borderRadius: 12, overflow: 'hidden' } }}
+      styles={{ content: { padding: 0, background: "#0d0d0d", borderRadius: 12, overflow: "hidden" } }}
       closable={false}
     >
-      <div className="relative flex flex-col" style={{ minHeight: '60vh', maxHeight: '92vh' }}>
+      <div className="relative flex flex-col" style={{ minHeight: "60vh", maxHeight: "92vh" }}>
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-          <span className="text-white/50 text-xs tabular-nums">{index + 1} / {media.length}</span>
+          <span className="text-white/50 text-xs tabular-nums">
+            {index + 1} / {media.length}
+          </span>
           <button
             aria-label="Close"
             onClick={onClose}
@@ -148,7 +149,7 @@ function Lightbox({ open, media, index, onClose, onNav, caption }) {
         </div>
 
         {/* Main media */}
-        <div className="flex-1 flex items-center justify-center relative overflow-hidden" style={{ minHeight: '50vh' }}>
+        <div className="flex-1 flex items-center justify-center relative overflow-hidden" style={{ minHeight: "50vh" }}>
           {index > 0 && (
             <button
               aria-label="Previous"
@@ -159,7 +160,7 @@ function Lightbox({ open, media, index, onClose, onNav, caption }) {
             </button>
           )}
 
-          {current?.type === 'video' ? (
+          {current?.type === "video" ? (
             <video controls src={current.url} className="max-h-[65vh] max-w-full object-contain" />
           ) : (
             <img
@@ -196,149 +197,172 @@ function Lightbox({ open, media, index, onClose, onNav, caption }) {
                 key={i}
                 onClick={() => onNav(i)}
                 className={`flex-shrink-0 w-14 h-10 rounded overflow-hidden transition-all ${
-                  i === index ? 'ring-2 ring-amber-400 opacity-100' : 'opacity-50 hover:opacity-80'
+                  i === index ? "ring-2 ring-amber-400 opacity-100" : "opacity-50 hover:opacity-80"
                 }`}
               >
-                {item.type === 'video'
-                  ? <video src={item.url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
-                  : <img loading="lazy" src={item.url} alt={`thumb-${i}`} className="w-full h-full object-cover" />}
+                {item.type === "video" ? (
+                  <video src={item.url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                ) : (
+                  <img loading="lazy" src={item.url} alt={`thumb-${i}`} className="w-full h-full object-cover" />
+                )}
               </button>
             ))}
           </div>
         )}
       </div>
     </Modal>
-  )
+  );
 }
 
 // ─── PostCard ─────────────────────────────────────────────────────────────────
 
 export default function PostCard({ post, onEdit }) {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [deleting, setDeleting] = useState(false)
-  const [commentCount, setCommentCount] = useState(0)
-  const [shareModalOpen, setShareModalOpen] = useState(false)
-  const [shareLinkCopied, setShareLinkCopied] = useState(false)
-  const [authorProfile, setAuthorProfile] = useState(null)
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
+  const [authorProfile, setAuthorProfile] = useState(null);
 
-  const isOwner = user?.uid === post.authorId
+  const isOwner = user?.uid === post.authorId;
 
   // ── Normalise media ──────────────────────────────────────────────────────
   const rawMedia =
     Array.isArray(post.mediaItems) && post.mediaItems.length > 0
       ? post.mediaItems
       : Array.isArray(post.imageUrls) && post.imageUrls.length > 0
-      ? post.imageUrls.map((u, i) => ({
-          url: u,
-          type: 'image',
-          path: Array.isArray(post.imagePaths) ? post.imagePaths[i] ?? null : post.imagePath ?? null,
-        }))
-      : post.imageUrl
-      ? [{ url: post.imageUrl, type: 'image', path: post.imagePath ?? null }]
-      : []
+        ? post.imageUrls.map((u, i) => ({
+            url: u,
+            type: "image",
+            path: Array.isArray(post.imagePaths) ? (post.imagePaths[i] ?? null) : (post.imagePath ?? null),
+          }))
+        : post.imageUrl
+          ? [{ url: post.imageUrl, type: "image", path: post.imagePath ?? null }]
+          : [];
 
-  const media = []
-  const _seen = new Set()
+  const media = [];
+  const _seen = new Set();
   for (const item of rawMedia) {
-    if (!item) continue
-    const url = typeof item === 'string' ? item : item.url ?? ''
-    const type = typeof item === 'object' && item.type ? item.type : 'image'
-    const path = typeof item === 'object' ? item.path ?? null : null
-    if (!url || _seen.has(url)) continue
-    _seen.add(url)
-    media.push({ url, type, path })
+    if (!item) continue;
+    const url = typeof item === "string" ? item : (item.url ?? "");
+    const type = typeof item === "object" && item.type ? item.type : "image";
+    const path = typeof item === "object" ? (item.path ?? null) : null;
+    if (!url || _seen.has(url)) continue;
+    _seen.add(url);
+    media.push({ url, type, path });
   }
 
-  const authorName = authorProfile?.displayName || post.authorName || 'Anonymous'
-  const photoURL = authorProfile?.photoURL || post.authorPhotoURL || null
-  const commentsAllowed = post.commentEnabled !== false
-  const shareEnabled = post.shareEnabled !== false
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/posts/${post.id}` : `/posts/${post.id}`
-  const totalReactions = Object.values(post.reactions || {}).reduce((a, b) => a + (b || 0), 0)
+  const authorName = authorProfile?.displayName || post.authorName || "Anonymous";
+  const photoURL = authorProfile?.photoURL || post.authorPhotoURL || null;
+  const commentsAllowed = post.commentEnabled !== false;
+  const shareEnabled = post.shareEnabled !== false;
+  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/posts/${post.id}` : `/posts/${post.id}`;
+  const totalReactions = Object.values(post.reactions || {}).reduce((a, b) => a + (b || 0), 0);
 
   // ── Link rendering ────────────────────────────────────────────────────────
   function renderTextWithLinks(text) {
-    if (!text) return null
-    const urlRegex = /(https?:\/\/[^\s<>"'()]+|(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(?:\/[^\s<>"'()]*)?)/gi
-    const parts = []
-    let lastIndex = 0
-    let match
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s<>"'()]+|(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(?:\/[^\s<>"'()]*)?)/gi;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
     while ((match = urlRegex.exec(text)) !== null) {
-      const url = match[0]
-      const href = /^https?:\/\//i.test(url) ? url : `http://${url}`
-      if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+      const url = match[0];
+      const href = /^https?:\/\//i.test(url) ? url : `http://${url}`;
+      if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
       parts.push(
-        <a key={`link-${match.index}`} href={href} target="_blank" rel="noreferrer noopener"
-          className="text-amber-700 hover:text-amber-900 underline underline-offset-2 decoration-amber-300">
+        <a
+          key={`link-${match.index}`}
+          href={href}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="text-amber-700 hover:text-amber-900 underline underline-offset-2 decoration-amber-300"
+        >
           {url}
-        </a>
-      )
-      lastIndex = match.index + url.length
+        </a>,
+      );
+      lastIndex = match.index + url.length;
     }
-    if (lastIndex < text.length) parts.push(text.slice(lastIndex))
-    return parts.length > 0 ? parts : text
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+    return parts.length > 0 ? parts : text;
   }
 
   // ── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (shareModalOpen) setShareLinkCopied(false)
-  }, [shareModalOpen])
+    if (shareModalOpen) setShareLinkCopied(false);
+  }, [shareModalOpen]);
 
   useEffect(() => {
-    if (!post?.authorId || user?.uid === post.authorId) return setAuthorProfile(null)
-    let unsub = null
-    let canceled = false
-    import('@/lib/profileCache')
-      .then((mod) => { if (!canceled) unsub = mod.subscribeToProfile(post.authorId, setAuthorProfile) })
-      .catch((err) => console.warn('profileCache error', err))
-    return () => { canceled = true; unsub?.() }
-  }, [post.authorId, user])
+    if (!post?.authorId || user?.uid === post.authorId) return setAuthorProfile(null);
+    let unsub = null;
+    let canceled = false;
+    import("@/lib/profileCache")
+      .then((mod) => {
+        if (!canceled) unsub = mod.subscribeToProfile(post.authorId, setAuthorProfile);
+      })
+      .catch((err) => console.warn("profileCache error", err));
+    return () => {
+      canceled = true;
+      unsub?.();
+    };
+  }, [post.authorId, user]);
 
   useEffect(() => {
-    if (!post?.id) return
-    const col = collection(doc(db, 'posts', post.id), 'comments')
-    const unsub = onSnapshot(col, (snap) => setCommentCount(snap.size), (err) => console.warn(err))
-    return () => unsub()
-  }, [post?.id])
+    if (!post?.id) return;
+    const col = collection(doc(db, "posts", post.id), "comments");
+    const unsub = onSnapshot(
+      col,
+      (snap) => setCommentCount(snap.size),
+      (err) => console.warn(err),
+    );
+    return () => unsub();
+  }, [post?.id]);
 
   // ── Delete ────────────────────────────────────────────────────────────────
   async function handleDelete() {
     Modal.confirm({
-      title: 'Delete this post?',
-      content: 'This action cannot be undone.',
-      okText: 'Delete',
+      title: "Delete this post?",
+      content: "This action cannot be undone.",
+      okText: "Delete",
       okButtonProps: { danger: true },
-      cancelText: 'Cancel',
+      cancelText: "Cancel",
       centered: true,
       onOk: async () => {
-        setDeleting(true)
+        setDeleting(true);
         try {
           const mediaPaths = Array.isArray(post.mediaItems)
             ? post.mediaItems.map((i) => i.path).filter(Boolean)
             : Array.isArray(post.imagePaths)
-            ? post.imagePaths
-            : post.imagePath
-            ? [post.imagePath]
-            : []
-          await deletePost(post.id, mediaPaths)
-          message.success('Post deleted')
+              ? post.imagePaths
+              : post.imagePath
+                ? [post.imagePath]
+                : [];
+          await deletePost(post.id, mediaPaths);
+          message.success("Post deleted");
         } catch {
-          message.error('Failed to delete post')
+          message.error("Failed to delete post");
         } finally {
-          setDeleting(false)
+          setDeleting(false);
         }
       },
-    })
+    });
   }
 
   const menuItems = [
-    { key: 'edit', icon: <EditOutlined />, label: 'Edit post', onClick: () => onEdit?.(post) },
-    { type: 'divider' },
-    { key: 'delete', icon: <DeleteOutlined />, label: 'Delete post', danger: true, disabled: deleting, onClick: handleDelete },
-  ]
+    { key: "edit", icon: <EditOutlined />, label: "Edit post", onClick: () => onEdit?.(post) },
+    { type: "divider" },
+    {
+      key: "delete",
+      icon: <DeleteOutlined />,
+      label: "Delete post",
+      danger: true,
+      disabled: deleting,
+      onClick: handleDelete,
+    },
+  ];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -346,19 +370,24 @@ export default function PostCard({ post, onEdit }) {
       <article
         className="post-card bg-white rounded-xl overflow-hidden mb-4 transition-shadow duration-200"
         style={{
-          boxShadow: '0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05)',
+          boxShadow: "0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05)",
         }}
       >
         {/* ── Media (bleed to edges, no padding) ── */}
         {media.length > 0 && (
           <div className="overflow-hidden">
-            <MediaGrid media={media} onOpen={(i) => { setLightboxIndex(i); setLightboxOpen(true) }} />
+            <MediaGrid
+              media={media}
+              onOpen={(i) => {
+                setLightboxIndex(i);
+                setLightboxOpen(true);
+              }}
+            />
           </div>
         )}
 
         {/* ── Content body ── */}
         <div className="px-5 pt-4 pb-3">
-
           {/* Author row */}
           <div className="flex items-center justify-between mb-3">
             <button
@@ -390,7 +419,7 @@ export default function PostCard({ post, onEdit }) {
             </button>
 
             {isOwner && (
-              <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
+              <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={["click"]}>
                 <button className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
                   <MoreOutlined style={{ fontSize: 16 }} />
                 </button>
@@ -400,9 +429,7 @@ export default function PostCard({ post, onEdit }) {
 
           {/* Title */}
           {post.title && (
-            <h2 className="mb-1.5 font-bold text-[17px] text-neutral-900 leading-snug tracking-tight">
-              {post.title}
-            </h2>
+            <h2 className="mb-1.5 font-bold text-[17px] text-neutral-900 leading-snug tracking-tight">{post.title}</h2>
           )}
 
           {/* Caption */}
@@ -416,7 +443,10 @@ export default function PostCard({ post, onEdit }) {
           {post.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {post.tags.map((tag) => (
-                <span key={tag} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                <span
+                  key={tag}
+                  className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100"
+                >
                   #{tag}
                 </span>
               ))}
@@ -430,15 +460,15 @@ export default function PostCard({ post, onEdit }) {
           <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center justify-between">
             <div className="flex items-center gap-3 text-xs text-neutral-400">
               {totalReactions > 0 && (
-                <span>{totalReactions} {totalReactions === 1 ? 'reaction' : 'reactions'}</span>
+                <span>
+                  {totalReactions} {totalReactions === 1 ? "reaction" : "reactions"}
+                </span>
               )}
-              {totalReactions > 0 && commentCount > 0 && (
-                <span className="text-neutral-200">·</span>
-              )}
+              {totalReactions > 0 && commentCount > 0 && <span className="text-neutral-200">·</span>}
               {commentCount > 0 && (
                 <span className="flex items-center gap-1">
                   <MessageOutlined style={{ fontSize: 11 }} />
-                  {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+                  {commentCount} {commentCount === 1 ? "comment" : "comments"}
                 </span>
               )}
             </div>
@@ -460,8 +490,8 @@ export default function PostCard({ post, onEdit }) {
         {commentsAllowed ? (
           <div className="px-5 pb-4 border-t border-neutral-50">
             <div className="pt-3">
-              <CommentComposer postId={post.id} />
               <CommentList postId={post.id} />
+              <CommentComposer postId={post.id} />
             </div>
           </div>
         ) : (
@@ -489,12 +519,12 @@ export default function PostCard({ post, onEdit }) {
         centered
         footer={null}
         width={420}
-        styles={{ content: { borderRadius: 16, padding: 0, overflow: 'hidden' } }}
+        styles={{ content: { borderRadius: 16, padding: 0, overflow: "hidden" } }}
       >
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center">
-              <LinkOutlined style={{ fontSize: 15, color: '#92400e' }} />
+              <LinkOutlined style={{ fontSize: 15, color: "#92400e" }} />
             </div>
             <div>
               <p className="m-0 font-semibold text-sm text-neutral-800">Share this post</p>
@@ -517,22 +547,26 @@ export default function PostCard({ post, onEdit }) {
             <button
               type="button"
               onClick={async () => {
-                try { await navigator.clipboard.writeText(shareUrl) } catch { /* silent */ }
-                setShareLinkCopied(true)
-                message.success('Link copied!')
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                } catch {
+                  /* silent */
+                }
+                setShareLinkCopied(true);
+                message.success("Link copied!");
               }}
               className="px-4 py-1.5 text-sm font-medium rounded-lg transition-colors"
               style={{
-                background: shareLinkCopied ? '#d1fae5' : '#fffbeb',
-                color: shareLinkCopied ? '#065f46' : '#92400e',
-                border: `1px solid ${shareLinkCopied ? '#6ee7b7' : '#fde68a'}`,
+                background: shareLinkCopied ? "#d1fae5" : "#fffbeb",
+                color: shareLinkCopied ? "#065f46" : "#92400e",
+                border: `1px solid ${shareLinkCopied ? "#6ee7b7" : "#fde68a"}`,
               }}
             >
-              {shareLinkCopied ? '✓ Copied' : 'Copy link'}
+              {shareLinkCopied ? "✓ Copied" : "Copy link"}
             </button>
           </div>
         </div>
       </Modal>
     </>
-  )
+  );
 }
