@@ -77,14 +77,14 @@ export default function PostComposer({ open, onClose, editPost }) {
   function handleMediaSelect(file) {
     const isImage = file.type && file.type.startsWith("image/");
     const isVideo = file.type && file.type.startsWith("video/");
-    const isLt8M = file.size / 1024 / 1024 < 8;
+    const isLt20M = file.size / 1024 / 1024 < 20;
     const isLt100M = file.size / 1024 / 1024 < 100;
     if (!isImage && !isVideo) {
       message.error("Please upload an image or video file");
       return Upload.LIST_IGNORE;
     }
-    if (isImage && !isLt8M) {
-      message.error("Image must be smaller than 8MB");
+    if (isImage && !isLt20M) {
+      message.error("Image must be smaller than 20MB");
       return Upload.LIST_IGNORE;
     }
     if (isVideo && !isLt100M) {
@@ -116,14 +116,14 @@ export default function PostComposer({ open, onClose, editPost }) {
         }
         const isImage = file.type && file.type.startsWith("image/");
         const isVideo = file.type && file.type.startsWith("video/");
-        const isLt8M = file.size / 1024 / 1024 < 8;
+        const isLt20M = file.size / 1024 / 1024 < 20;
         const isLt100M = file.size / 1024 / 1024 < 100;
         if (!isImage && !isVideo) {
           message.error("Only image or video files are allowed");
           continue;
         }
-        if (isImage && !isLt8M) {
-          message.error("Image must be smaller than 8MB");
+        if (isImage && !isLt20M) {
+          message.error("Image must be smaller than 20MB");
           continue;
         }
         if (isVideo && !isLt100M) {
@@ -388,7 +388,7 @@ export default function PostComposer({ open, onClose, editPost }) {
                     <div className="p-3 text-center">
                       <PlusOutlined style={{ fontSize: 20, color: "var(--color-neutral-600)", marginBottom: 6 }} />
                       <p className="m-0 text-sm text-neutral-600">Add more media — you can select multiple (max 10)</p>
-                      <p className="mt-1 text-xs text-neutral-500">Images up to 8MB, videos up to 100MB</p>
+                      <p className="mt-1 text-xs text-neutral-500">Images up to 20MB, videos up to 100MB</p>
                     </div>
                   </Upload.Dragger>
                   <div className="mt-2 text-center">
@@ -417,7 +417,7 @@ export default function PostComposer({ open, onClose, editPost }) {
                   <p className="m-0 text-sm text-neutral-600 font-medium">
                     Click or drag media here (you can select multiple)
                   </p>
-                  <p className="mt-1 text-xs text-neutral-500">Image max 8MB | Video max 100MB | Up to 10 items</p>
+                  <p className="mt-1 text-xs text-neutral-500">Image max 20MB | Video max 100MB | Up to 10 items</p>
                 </div>
               </Upload.Dragger>
               <div className="w-full mt-3 flex items-center justify-center gap-2">
